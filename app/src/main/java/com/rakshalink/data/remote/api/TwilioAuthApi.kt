@@ -20,8 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class TwilioAuthApi @Inject constructor() {
 
-    // 10.0.2.2 maps to localhost when running inside the Android Emulator
-    private var baseUrl: String = "http://10.0.2.2:3000"
+    private var baseUrl: String = com.rakshalink.BuildConfig.TWILIO_BACKEND_URL.ifBlank { "https://rakshlink-app.onrender.com" }
 
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {

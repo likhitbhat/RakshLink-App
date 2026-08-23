@@ -46,9 +46,11 @@ android {
         val supabaseUrl = localProperties.getProperty("SUPABASE_URL") ?: "https://placeholder-rakshalink.supabase.co"
         val supabaseAnonKey = localProperties.getProperty("SUPABASE_ANON_KEY") ?: "placeholder-anon-key"
         val googleMapsApiKey = localProperties.getProperty("GOOGLE_MAPS_API_KEY") ?: "placeholder-maps-key"
+        val twilioBackendUrl = localProperties.getProperty("TWILIO_BACKEND_URL") ?: "https://rakshlink-app.onrender.com"
 
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "TWILIO_BACKEND_URL", "\"$twilioBackendUrl\"")
         manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
     }
 
