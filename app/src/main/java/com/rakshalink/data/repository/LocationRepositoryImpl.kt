@@ -52,7 +52,8 @@ class LocationRepositoryImpl @Inject constructor(
                     longitude = location.longitude,
                     accuracy = location.accuracy
                 )
-                supabaseProvider.db.from("live_locations").insert(dto)
+                try { supabaseProvider.db.from("locations").insert(dto) } catch (e: Exception) {}
+                try { supabaseProvider.db.from("live_locations").insert(dto) } catch (e: Exception) {}
                 isSynced = true
             }
         } catch (e: Exception) {

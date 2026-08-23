@@ -46,7 +46,18 @@ fun GuardianLiveMapScreen(
     val wearers by viewModel.linkedWearersState.collectAsState()
 
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(12.973, 77.599), 14f)
+        position = CameraPosition.fromLatLngZoom(LatLng(12.97544, 77.59337), 15f)
+    }
+
+    androidx.compose.runtime.LaunchedEffect(wearers) {
+        wearers.firstOrNull()?.lastLocation?.let { loc ->
+            cameraPositionState.animate(
+                com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(
+                    LatLng(loc.latitude, loc.longitude),
+                    15f
+                )
+            )
+        }
     }
 
     Column(
