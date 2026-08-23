@@ -81,8 +81,14 @@ interface EmergencyContactDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertContacts(contacts: List<EmergencyContactEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertContact(contact: EmergencyContactEntity)
+
     @Query("SELECT * FROM cached_emergency_contacts WHERE wearerId = :wearerId")
     fun getContactsForWearer(wearerId: String): Flow<List<EmergencyContactEntity>>
+
+    @Query("DELETE FROM cached_emergency_contacts WHERE id = :id")
+    suspend fun deleteContact(id: String)
 }
 
 @Dao

@@ -93,7 +93,10 @@ private fun sendRealVerificationSms(context: Context, rawPhoneNumber: String, ot
         Manifest.permission.SEND_SMS
     ) == PackageManager.PERMISSION_GRANTED
 
+    android.util.Log.d("RakshaOTP", "[OTP Request Sent] Phone: '$cleanPhone', Code: '$otpCode', PermissionGranted: $hasPermission")
+
     if (!hasPermission) {
+        android.util.Log.w("RakshaOTP", "[OTP Request Warning] SEND_SMS permission required.")
         return Pair(false, "PERMISSION_REQUIRED")
     }
 
@@ -105,9 +108,10 @@ private fun sendRealVerificationSms(context: Context, rawPhoneNumber: String, ot
             SmsManager.getDefault()
         }
         smsManager.sendTextMessage(cleanPhone, null, message, null, null)
+        android.util.Log.d("RakshaOTP", "[OTP Sent Success] SMS text message dispatched via SmsManager to $cleanPhone")
         Pair(true, "SMS OTP ($otpCode) automatically sent in background to $cleanPhone!")
     } catch (e: Exception) {
-        e.printStackTrace()
+        android.util.Log.e("RakshaOTP", "[OTP Sent Exception] ${e.message}", e)
         try {
             val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$cleanPhone")).apply {
                 putExtra("sms_body", message)
@@ -838,12 +842,15 @@ private fun OtpVerificationContent(
         // Verify Button with Real Code Check
         Button(
             onClick = {
+                val isMatch = (typedOtpCode == activeCorrectOtp)
+                android.util.Log.d("RakshaOTP", "[OTP Comparison] Typed: '$typedOtpCode', Expected: '$activeCorrectOtp', ResultMatch: $isMatch")
                 if (typedOtpCode.length < 4) {
                     errorMessage = "Please enter the complete 4-digit SMS OTP code."
-                } else if (typedOtpCode != activeCorrectOtp) {
+                } else if (!isMatch) {
                     errorMessage = "Incorrect OTP code ($typedOtpCode)! Check your SMS and try again."
                 } else {
                     errorMessage = ""
+                    android.util.Log.d("RakshaOTP", "[OTP Verified Success] OTP match confirmed! Executing onVerified callback")
                     onVerified()
                 }
             },
