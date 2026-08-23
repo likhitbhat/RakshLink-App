@@ -111,10 +111,20 @@ class WearerViewModel @Inject constructor(
     val guardiansList: StateFlow<List<GuardianModel>> = _guardiansList.asStateFlow()
 
     private fun getFallbackGuardians(): List<GuardianModel> {
-        return listOf(
-            GuardianModel("g1", "Ramesh Bhat (Dad)", "ramesh@rakshalink.com", "+91 98450 12345", isPrimary = true, status = "ACTIVE"),
-            GuardianModel("g2", "Priya Bhat (Sister)", "priya@rakshalink.com", "+91 98450 67890", isPrimary = false, status = "ACTIVE")
-        )
+        return emptyList()
+    }
+
+    private val defaultContacts = emptyList<EmergencyContactModel>()
+
+    private val _contactsList = MutableStateFlow<List<EmergencyContactModel>>(defaultContacts)
+    val contactsState: StateFlow<List<EmergencyContactModel>> = _contactsList.asStateFlow()
+
+    private fun listenToEmergencyContacts() {
+        viewModelScope.launch {
+            contactRepository.getEmergencyContacts().collect { list ->
+                _contactsList.value = list
+            }
+        }
     }
 
     private fun listenToRealtimeGuardians() {
@@ -269,35 +279,7 @@ class WearerViewModel @Inject constructor(
     val safeZonesState: StateFlow<List<SafeZoneModel>> = safeZoneRepository.getActiveSafeZones()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val defaultContacts = listOf(
-        EmergencyContactModel(
-            id = "c1",
-            name = "Ramesh Bhat",
-            phoneNumber = "+91 98450 12345",
-            relationship = "Father",
-            isPrimary = true,
-            isVerified = true
-        ),
-        EmergencyContactModel(
-            id = "c2",
-            name = "Priya Bhat",
-            phoneNumber = "+91 98450 67890",
-            relationship = "Sister",
-            isPrimary = false,
-            isVerified = true
-        ),
-        EmergencyContactModel(
-            id = "c3",
-            name = "Dr. Ananya Sharma",
-            phoneNumber = "+91 98111 22334",
-            relationship = "Family Doctor",
-            isPrimary = false,
-            isVerified = false
-        )
-    )
 
-    private val _contactsList = MutableStateFlow<List<EmergencyContactModel>>(defaultContacts)
-    val contactsState: StateFlow<List<EmergencyContactModel>> = _contactsList.asStateFlow()
 
     val pendantConnectionState: StateFlow<PendantConnectionState> = bleRepository.connectionState
     val pendantBattery: StateFlow<Int> = bleRepository.batteryLevel
@@ -325,6 +307,7 @@ class WearerViewModel @Inject constructor(
     init {
         fallDetectionManager.startMonitoring()
         listenToRealtimeGuardians()
+        listenToEmergencyContacts()
     }
 
     val dashboardUiState: StateFlow<WearerDashboardUiState> = combine(

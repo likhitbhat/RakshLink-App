@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LockClock
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
@@ -198,37 +199,71 @@ fun EmergencyContactsScreen(
                 }
             }
 
-            // Contacts List
-            items(contacts) { contact ->
-                ContactItemCard(
-                    contact = contact,
-                    onVerifyClick = {
-                        verifyingContactTarget = contact
-                    },
-                    onCallClick = {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contact.phoneNumber}"))
-                        context.startActivity(intent)
-                    },
-                    onSendTestSms = {
-                        val sendIntent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = Uri.parse("smsto:${contact.phoneNumber}")
-                            putExtra("sms_body", "[RakshaLink Test Alert] Hi ${contact.name}, this is a test emergency contact message from RakshaLink protection service.")
+            if (contacts.isEmpty()) {
+                item {
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "No contacts",
+                                tint = CyanAccent,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "No Emergency Contacts Added",
+                                color = TextPrimary,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Tap 'Add' above to verify and save your real emergency contacts.",
+                                color = TextSecondary,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
                         }
-                        try {
-                            context.startActivity(sendIntent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Test SMS alert triggered for ${contact.name}", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onSetPrimary = {
-                        viewModel.setPrimaryContact(contact.id)
-                        Toast.makeText(context, "${contact.name} set as primary contact", Toast.LENGTH_SHORT).show()
-                    },
-                    onDeleteClick = {
-                        viewModel.deleteContact(contact.id)
-                        Toast.makeText(context, "Deleted ${contact.name}", Toast.LENGTH_SHORT).show()
                     }
-                )
+                }
+            } else {
+                // Contacts List
+                items(contacts) { contact ->
+                    ContactItemCard(
+                        contact = contact,
+                        onVerifyClick = {
+                            verifyingContactTarget = contact
+                        },
+                        onCallClick = {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contact.phoneNumber}"))
+                            context.startActivity(intent)
+                        },
+                        onSendTestSms = {
+                            val sendIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("smsto:${contact.phoneNumber}")
+                                putExtra("sms_body", "[RakshaLink Test Alert] Hi ${contact.name}, this is a test emergency contact message from RakshaLink protection service.")
+                            }
+                            try {
+                                context.startActivity(sendIntent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Test SMS alert triggered for ${contact.name}", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onSetPrimary = {
+                            viewModel.setPrimaryContact(contact.id)
+                            Toast.makeText(context, "${contact.name} set as primary contact", Toast.LENGTH_SHORT).show()
+                        },
+                        onDeleteClick = {
+                            viewModel.deleteContact(contact.id)
+                            Toast.makeText(context, "Deleted ${contact.name}", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
             }
         }
 
