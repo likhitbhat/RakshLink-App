@@ -368,6 +368,57 @@ class WearerViewModel @Inject constructor(
         }
     }
 
+    fun dispatchEmergencySms(context: Context, onResult: (Int, String) -> Unit) {
+        val contacts = _contactsList.value
+        val loc = locationState.value
+        val lat = loc?.latitude
+        val lng = loc?.longitude
+
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.SEND_SMS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            onResult(0, "Permission DENIED: SEND_SMS permission is required to send real emergency SMS messages.")
+            return
+        }
+
+        val mapsUrl = if (lat != null && lng != null) {
+            "https://maps.google.com/?q=$lat,$lng"
+        } else {
+            "GPS Coordinates unavailable"
+        }
+
+        val smsMessage = "🚨 RAKSHALINK EMERGENCY SOS ALERT! I require immediate assistance! My current location: $mapsUrl - Sent via RakshaLink Emergency System"
+
+        var sentCount = 0
+        val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            context.getSystemService(android.telephony.SmsManager::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            android.telephony.SmsManager.getDefault()
+        }
+
+        contacts.forEach { contact ->
+            val cleanPhone = contact.phoneNumber.trim()
+            if (cleanPhone.isNotBlank()) {
+                try {
+                    val parts = smsManager.divideMessage(smsMessage)
+                    if (parts.size > 1) {
+                        smsManager.sendMultipartTextMessage(cleanPhone, null, parts, null, null)
+                    } else {
+                        smsManager.sendTextMessage(cleanPhone, null, smsMessage, null, null)
+                    }
+                    sentCount++
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        if (sentCount > 0) {
+            onResult(sentCount, "🚨 EMERGENCY SOS BROADCAST: Real SMS sent to $sentCount emergency contact(s)!")
+        } else {
+            onResult(0, "No valid emergency contact numbers found to dispatch SMS.")
+        }
+    }
+
     fun cancelActiveSos(alertId: String, wasFalseAlarm: Boolean) {
         viewModelScope.launch {
             sosRepository.resolveSos(alertId, wasFalseAlarm)
