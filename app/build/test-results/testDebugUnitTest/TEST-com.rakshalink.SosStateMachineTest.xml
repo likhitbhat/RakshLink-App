@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.rakshalink.SosStateMachineTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-20T13:46:42.556Z" hostname="LIKITH" time="2.023">
+  <properties/>
+  <testcase name="testStartPressingTransitionsToPressing" classname="com.rakshalink.SosStateMachineTest" time="0.938"/>
+  <testcase name="testCancelPressingReturnsToIdle" classname="com.rakshalink.SosStateMachineTest" time="0.001"/>
+  <testcase name="testActiveSosTrigger" classname="com.rakshalink.SosStateMachineTest" time="1.082"/>
+  <testcase name="testInitialStateIsIdle" classname="com.rakshalink.SosStateMachineTest" time="0.0"/>
+  <testcase name="testArmSosAndConfirmationTransitions" classname="com.rakshalink.SosStateMachineTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

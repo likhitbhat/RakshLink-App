@@ -1,0 +1,85 @@
+com.rakshalink.app-jetified-savedstate-1.2.1-0 C:\Users\likhi\.gradle\caches\9.0.0\transforms\06a236dda71bf5c84ee7f8cfcfb0e464\transformed\jetified-savedstate-1.2.1\res
+com.rakshalink.app-jetified-emoji2-1.3.0-1 C:\Users\likhi\.gradle\caches\9.0.0\transforms\0c1afdbf025beb1262bb95be6be84847\transformed\jetified-emoji2-1.3.0\res
+com.rakshalink.app-sqlite-2.4.0-2 C:\Users\likhi\.gradle\caches\9.0.0\transforms\134c56f267f59c784bc43975f8b2cd7b\transformed\sqlite-2.4.0\res
+com.rakshalink.app-work-runtime-ktx-2.9.1-3 C:\Users\likhi\.gradle\caches\9.0.0\transforms\1c82dc628f4fe6b08e3ad6a5e8580986\transformed\work-runtime-ktx-2.9.1\res
+com.rakshalink.app-jetified-lifecycle-service-2.8.7-4 C:\Users\likhi\.gradle\caches\9.0.0\transforms\1fc3a12e2b6ea6b6066cd1e7d6c14e60\transformed\jetified-lifecycle-service-2.8.7\res
+com.rakshalink.app-jetified-firebase-messaging-24.1.0-5 C:\Users\likhi\.gradle\caches\9.0.0\transforms\348104062b430f048daac753e260be7f\transformed\jetified-firebase-messaging-24.1.0\res
+com.rakshalink.app-jetified-lifecycle-viewmodel-compose-release-6 C:\Users\likhi\.gradle\caches\9.0.0\transforms\34a6e60de1213bd62bbf6295e99a19cb\transformed\jetified-lifecycle-viewmodel-compose-release\res
+com.rakshalink.app-jetified-ui-tooling-release-7 C:\Users\likhi\.gradle\caches\9.0.0\transforms\378f95e6ca9a7096f0ce14f7b1d1d368\transformed\jetified-ui-tooling-release\res
+com.rakshalink.app-jetified-lifecycle-livedata-core-ktx-2.8.7-8 C:\Users\likhi\.gradle\caches\9.0.0\transforms\3f9f12a45fb5bd58c3e5c11dce236d7e\transformed\jetified-lifecycle-livedata-core-ktx-2.8.7\res
+com.rakshalink.app-jetified-material-release-9 C:\Users\likhi\.gradle\caches\9.0.0\transforms\41c7a5735a1516c723dd25431147cddf\transformed\jetified-material-release\res
+com.rakshalink.app-jetified-material3-release-10 C:\Users\likhi\.gradle\caches\9.0.0\transforms\4e6ff06cf5fb3aad166584756fdf9fee\transformed\jetified-material3-release\res
+com.rakshalink.app-jetified-foundation-layout-release-11 C:\Users\likhi\.gradle\caches\9.0.0\transforms\4e894d377894a561b86f8d853d884553\transformed\jetified-foundation-layout-release\res
+com.rakshalink.app-jetified-credentials-1.3.0-12 C:\Users\likhi\.gradle\caches\9.0.0\transforms\4f3e91d2e7b2528541376c300b449344\transformed\jetified-credentials-1.3.0\res
+com.rakshalink.app-jetified-hilt-navigation-1.2.0-13 C:\Users\likhi\.gradle\caches\9.0.0\transforms\54a1e5c4587809bd2eeb07a188f99159\transformed\jetified-hilt-navigation-1.2.0\res
+com.rakshalink.app-jetified-play-services-basement-18.4.0-14 C:\Users\likhi\.gradle\caches\9.0.0\transforms\54ef4fbf1c1f9f7cd885afbffa85b4f5\transformed\jetified-play-services-basement-18.4.0\res
+com.rakshalink.app-jetified-room-ktx-2.6.1-15 C:\Users\likhi\.gradle\caches\9.0.0\transforms\569d934aabcf3117ea284e18b5c9a0cc\transformed\jetified-room-ktx-2.6.1\res
+com.rakshalink.app-jetified-activity-1.9.3-16 C:\Users\likhi\.gradle\caches\9.0.0\transforms\56dc0d47cc1c053cdcb8f793708b2ca2\transformed\jetified-activity-1.9.3\res
+com.rakshalink.app-jetified-savedstate-ktx-1.2.1-17 C:\Users\likhi\.gradle\caches\9.0.0\transforms\5b11ac5aaf6dbea115871d699669c9ea\transformed\jetified-savedstate-ktx-1.2.1\res
+com.rakshalink.app-fragment-1.5.7-18 C:\Users\likhi\.gradle\caches\9.0.0\transforms\5c19c00639ad1acaf220ce74d0a676f7\transformed\fragment-1.5.7\res
+com.rakshalink.app-browser-1.8.0-19 C:\Users\likhi\.gradle\caches\9.0.0\transforms\5cb15bb310f9a16ea45e88ebb5fb3a04\transformed\browser-1.8.0\res
+com.rakshalink.app-navigation-runtime-2.8.4-20 C:\Users\likhi\.gradle\caches\9.0.0\transforms\61f8cba0887a7a44c6575c0580c4bd70\transformed\navigation-runtime-2.8.4\res
+com.rakshalink.app-jetified-animation-release-21 C:\Users\likhi\.gradle\caches\9.0.0\transforms\642c66dc311b67e78abb2c811ef334a8\transformed\jetified-animation-release\res
+com.rakshalink.app-jetified-ads-adservices-java-1.0.0-beta05-22 C:\Users\likhi\.gradle\caches\9.0.0\transforms\676a93f23a22e191c1775cdd4c7ed899\transformed\jetified-ads-adservices-java-1.0.0-beta05\res
+com.rakshalink.app-jetified-lifecycle-runtime-release-23 C:\Users\likhi\.gradle\caches\9.0.0\transforms\699cb98521633392ec85b545326af9f1\transformed\jetified-lifecycle-runtime-release\res
+com.rakshalink.app-jetified-annotation-experimental-1.4.1-24 C:\Users\likhi\.gradle\caches\9.0.0\transforms\6a407e1ec955664805bcff7529d75350\transformed\jetified-annotation-experimental-1.4.1\res
+com.rakshalink.app-jetified-lifecycle-viewmodel-savedstate-2.8.7-25 C:\Users\likhi\.gradle\caches\9.0.0\transforms\6cffa00aeebdce0912ea3ea84e5a20e4\transformed\jetified-lifecycle-viewmodel-savedstate-2.8.7\res
+com.rakshalink.app-jetified-hilt-navigation-compose-1.2.0-26 C:\Users\likhi\.gradle\caches\9.0.0\transforms\6fd9fe7d718c776d98a33c0df2ecc896\transformed\jetified-hilt-navigation-compose-1.2.0\res
+com.rakshalink.app-jetified-activity-compose-1.9.3-27 C:\Users\likhi\.gradle\caches\9.0.0\transforms\74d79f26e08bf8bd138cc97dfe390b0d\transformed\jetified-activity-compose-1.9.3\res
+com.rakshalink.app-jetified-lifecycle-process-2.8.7-28 C:\Users\likhi\.gradle\caches\9.0.0\transforms\77f1ec1216409ab1d30c71c3d8a344af\transformed\jetified-lifecycle-process-2.8.7\res
+com.rakshalink.app-jetified-material-icons-core-release-29 C:\Users\likhi\.gradle\caches\9.0.0\transforms\7955fa2819176b99315febf9900a77c0\transformed\jetified-material-icons-core-release\res
+com.rakshalink.app-navigation-common-ktx-2.8.4-30 C:\Users\likhi\.gradle\caches\9.0.0\transforms\7b1adc1254ef83cec3aeb2980ca0a4b9\transformed\navigation-common-ktx-2.8.4\res
+com.rakshalink.app-jetified-animation-core-release-31 C:\Users\likhi\.gradle\caches\9.0.0\transforms\7e89c5b75560b7bf0b989791349594f8\transformed\jetified-animation-core-release\res
+com.rakshalink.app-jetified-datastore-preferences-release-32 C:\Users\likhi\.gradle\caches\9.0.0\transforms\7fa40010bc472fa824274cf5f6cb9e5b\transformed\jetified-datastore-preferences-release\res
+com.rakshalink.app-jetified-profileinstaller-1.3.1-33 C:\Users\likhi\.gradle\caches\9.0.0\transforms\7ff114177ad9f351343bdf535ee1145d\transformed\jetified-profileinstaller-1.3.1\res
+com.rakshalink.app-jetified-ui-release-34 C:\Users\likhi\.gradle\caches\9.0.0\transforms\859f9f555ad8e0ce786c0831027fce84\transformed\jetified-ui-release\res
+com.rakshalink.app-jetified-material-icons-extended-release-35 C:\Users\likhi\.gradle\caches\9.0.0\transforms\86cf255a2d2a004039e528f84b838296\transformed\jetified-material-icons-extended-release\res
+com.rakshalink.app-lifecycle-livedata-2.8.7-36 C:\Users\likhi\.gradle\caches\9.0.0\transforms\8a5f7e37727cc587fbedd50a9b9dbc7d\transformed\lifecycle-livedata-2.8.7\res
+com.rakshalink.app-jetified-maps-compose-6.2.1-37 C:\Users\likhi\.gradle\caches\9.0.0\transforms\8c5fab5200d27484f624e28d2c225457\transformed\jetified-maps-compose-6.2.1\res
+com.rakshalink.app-jetified-activity-ktx-1.9.3-38 C:\Users\likhi\.gradle\caches\9.0.0\transforms\8f060c94e4f77e7d172293b9e36e3745\transformed\jetified-activity-ktx-1.9.3\res
+com.rakshalink.app-jetified-lifecycle-runtime-ktx-release-39 C:\Users\likhi\.gradle\caches\9.0.0\transforms\95d7b64055d4a11110c7863826f8d074\transformed\jetified-lifecycle-runtime-ktx-release\res
+com.rakshalink.app-jetified-lifecycle-viewmodel-ktx-2.8.7-40 C:\Users\likhi\.gradle\caches\9.0.0\transforms\971103c6dc89e08674a6a5d12a8489ca\transformed\jetified-lifecycle-viewmodel-ktx-2.8.7\res
+com.rakshalink.app-jetified-graphics-path-1.0.1-41 C:\Users\likhi\.gradle\caches\9.0.0\transforms\9d28e8661b0142e82cb7c9bfc0e501c2\transformed\jetified-graphics-path-1.0.1\res
+com.rakshalink.app-jetified-credentials-play-services-auth-1.3.0-42 C:\Users\likhi\.gradle\caches\9.0.0\transforms\a4507740be002dd7bf4b999b20940897\transformed\jetified-credentials-play-services-auth-1.3.0\res
+com.rakshalink.app-jetified-datastore-core-release-43 C:\Users\likhi\.gradle\caches\9.0.0\transforms\a63220db2dce336a716099e59dd32653\transformed\jetified-datastore-core-release\res
+com.rakshalink.app-core-1.13.1-44 C:\Users\likhi\.gradle\caches\9.0.0\transforms\aeca168713defef91abcdc2d4a2df600\transformed\core-1.13.1\res
+com.rakshalink.app-jetified-datastore-release-45 C:\Users\likhi\.gradle\caches\9.0.0\transforms\b00f0b039f57e9d0ea2678829d9600d9\transformed\jetified-datastore-release\res
+com.rakshalink.app-jetified-material-ripple-release-46 C:\Users\likhi\.gradle\caches\9.0.0\transforms\b04767ecc74f9b16ec9e5274e12c87bc\transformed\jetified-material-ripple-release\res
+com.rakshalink.app-jetified-core-ktx-1.13.1-47 C:\Users\likhi\.gradle\caches\9.0.0\transforms\b408a04792a5ca543fc52bc2a977fea8\transformed\jetified-core-ktx-1.13.1\res
+com.rakshalink.app-jetified-hilt-work-1.2.0-48 C:\Users\likhi\.gradle\caches\9.0.0\transforms\b745045f55291a2b49bb36d39e73829b\transformed\jetified-hilt-work-1.2.0\res
+com.rakshalink.app-jetified-lifecycle-viewmodel-release-49 C:\Users\likhi\.gradle\caches\9.0.0\transforms\b8d65f30ac119ac9a977144afd0c1910\transformed\jetified-lifecycle-viewmodel-release\res
+com.rakshalink.app-jetified-ads-adservices-1.0.0-beta05-50 C:\Users\likhi\.gradle\caches\9.0.0\transforms\b9a5d82a84227dd218ae633fe0829714\transformed\jetified-ads-adservices-1.0.0-beta05\res
+com.rakshalink.app-work-runtime-2.9.1-51 C:\Users\likhi\.gradle\caches\9.0.0\transforms\bc13e33e394b09bb3c60ee238ab5ff1c\transformed\work-runtime-2.9.1\res
+com.rakshalink.app-jetified-firebase-common-21.0.0-52 C:\Users\likhi\.gradle\caches\9.0.0\transforms\bcb6bc47abad57d546b46f8b8710bc2e\transformed\jetified-firebase-common-21.0.0\res
+com.rakshalink.app-navigation-common-2.8.4-53 C:\Users\likhi\.gradle\caches\9.0.0\transforms\be7dcb15460333d4988b77e2f7b24f78\transformed\navigation-common-2.8.4\res
+com.rakshalink.app-jetified-play-services-auth-21.1.1-54 C:\Users\likhi\.gradle\caches\9.0.0\transforms\bf0b0079c3296624ad82310b90e9adaa\transformed\jetified-play-services-auth-21.1.1\res
+com.rakshalink.app-jetified-ui-geometry-release-55 C:\Users\likhi\.gradle\caches\9.0.0\transforms\bf7ecc4d16c8f8c9a8d3b26b275d34b4\transformed\jetified-ui-geometry-release\res
+com.rakshalink.app-jetified-play-services-measurement-api-22.1.2-56 C:\Users\likhi\.gradle\caches\9.0.0\transforms\c0dda8a0999bbcf8d8c4e3656bd835ca\transformed\jetified-play-services-measurement-api-22.1.2\res
+com.rakshalink.app-jetified-ui-test-manifest-1.7.5-57 C:\Users\likhi\.gradle\caches\9.0.0\transforms\cbb69a9cfd0113ecdfde6998d2633e89\transformed\jetified-ui-test-manifest-1.7.5\res
+com.rakshalink.app-jetified-play-services-base-18.5.0-58 C:\Users\likhi\.gradle\caches\9.0.0\transforms\cc7c33c623790d1fec60ef958e266a4f\transformed\jetified-play-services-base-18.5.0\res
+com.rakshalink.app-navigation-runtime-ktx-2.8.4-59 C:\Users\likhi\.gradle\caches\9.0.0\transforms\cdaea59fbf9c861333a51ce1b239106d\transformed\navigation-runtime-ktx-2.8.4\res
+com.rakshalink.app-jetified-foundation-release-60 C:\Users\likhi\.gradle\caches\9.0.0\transforms\ce2e9dc1d911585525fe8f3fc7cb2661\transformed\jetified-foundation-release\res
+com.rakshalink.app-jetified-lifecycle-runtime-compose-release-61 C:\Users\likhi\.gradle\caches\9.0.0\transforms\d4ae042ed88c0cd4c806f00af14b284c\transformed\jetified-lifecycle-runtime-compose-release\res
+com.rakshalink.app-jetified-runtime-release-62 C:\Users\likhi\.gradle\caches\9.0.0\transforms\d72eeb0213ba03126d25f4ae0a6502d7\transformed\jetified-runtime-release\res
+com.rakshalink.app-jetified-ui-graphics-release-63 C:\Users\likhi\.gradle\caches\9.0.0\transforms\da17bf71f2969cd2af0c4ec203a02ca4\transformed\jetified-ui-graphics-release\res
+com.rakshalink.app-jetified-ui-tooling-preview-release-64 C:\Users\likhi\.gradle\caches\9.0.0\transforms\dc2ba863cb25e82a30736942af2c7a6b\transformed\jetified-ui-tooling-preview-release\res
+com.rakshalink.app-jetified-runtime-saveable-release-65 C:\Users\likhi\.gradle\caches\9.0.0\transforms\de04502002d75e8b5077f3f71f5e484d\transformed\jetified-runtime-saveable-release\res
+com.rakshalink.app-jetified-ui-text-release-66 C:\Users\likhi\.gradle\caches\9.0.0\transforms\de6ce84b5973d16e9db886f3066a7f95\transformed\jetified-ui-text-release\res
+com.rakshalink.app-lifecycle-livedata-core-2.8.7-67 C:\Users\likhi\.gradle\caches\9.0.0\transforms\e02472de4acd3343ef8e62d461d76dd5\transformed\lifecycle-livedata-core-2.8.7\res
+com.rakshalink.app-jetified-ui-tooling-data-release-68 C:\Users\likhi\.gradle\caches\9.0.0\transforms\e9313d6db4bc59d676c899c396f831e1\transformed\jetified-ui-tooling-data-release\res
+com.rakshalink.app-room-runtime-2.6.1-69 C:\Users\likhi\.gradle\caches\9.0.0\transforms\ea64800af36581efe7292f45563ce061\transformed\room-runtime-2.6.1\res
+com.rakshalink.app-jetified-navigation-compose-2.8.4-70 C:\Users\likhi\.gradle\caches\9.0.0\transforms\ecc2d492d0cccbaed4821c27ec08384a\transformed\jetified-navigation-compose-2.8.4\res
+com.rakshalink.app-jetified-customview-poolingcontainer-1.0.0-71 C:\Users\likhi\.gradle\caches\9.0.0\transforms\ecd8be2e516938334890c19f536b1676\transformed\jetified-customview-poolingcontainer-1.0.0\res
+com.rakshalink.app-jetified-startup-runtime-1.2.0-72 C:\Users\likhi\.gradle\caches\9.0.0\transforms\eea54113c4952531933e7b54beaf232b\transformed\jetified-startup-runtime-1.2.0\res
+com.rakshalink.app-sqlite-framework-2.4.0-73 C:\Users\likhi\.gradle\caches\9.0.0\transforms\ef4cd6cd9ab251eecf47a7d378ad87b1\transformed\sqlite-framework-2.4.0\res
+com.rakshalink.app-core-runtime-2.2.0-74 C:\Users\likhi\.gradle\caches\9.0.0\transforms\f0f44608b1c002beed37d0ddc0ebdbfe\transformed\core-runtime-2.2.0\res
+com.rakshalink.app-jetified-play-services-maps-19.0.0-75 C:\Users\likhi\.gradle\caches\9.0.0\transforms\f798300c45923727ef39e7590afdf190\transformed\jetified-play-services-maps-19.0.0\res
+com.rakshalink.app-jetified-ui-unit-release-76 C:\Users\likhi\.gradle\caches\9.0.0\transforms\f8e9ca90094d4c9e0c65def83a937214\transformed\jetified-ui-unit-release\res
+com.rakshalink.app-jetified-ui-util-release-77 C:\Users\likhi\.gradle\caches\9.0.0\transforms\f98e36273f995cd3b604efd2ac8baded\transformed\jetified-ui-util-release\res
+com.rakshalink.app-res-78 E:\project\Rakshalink app\app\build\generated\res\processDebugGoogleServices
+com.rakshalink.app-resValues-79 E:\project\Rakshalink app\app\build\generated\res\resValues\debug
+com.rakshalink.app-packageDebugResources-80 E:\project\Rakshalink app\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.rakshalink.app-packageDebugResources-81 E:\project\Rakshalink app\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.rakshalink.app-debug-82 E:\project\Rakshalink app\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.rakshalink.app-debug-83 E:\project\Rakshalink app\app\src\debug\res
+com.rakshalink.app-main-84 E:\project\Rakshalink app\app\src\main\res

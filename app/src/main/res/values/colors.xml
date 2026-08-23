@@ -1,0 +1,7 @@
+<resources>
+    <color name="primary_red">#E5484D</color>
+    <color name="cyan_accent">#67E8F9</color>
+    <color name="background_dark">#080A0D</color>
+    <color name="surface_dark">#12171C</color>
+    <color name="text_primary">#F5F7FA</color>
+</resources>

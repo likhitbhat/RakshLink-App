@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_dark">#080A0D</color>
+    <color name="cyan_accent">#67E8F9</color>
+    <color name="primary_red">#E5484D</color>
+    <color name="surface_dark">#12171C</color>
+    <color name="text_primary">#F5F7FA</color>
+    <string name="app_name">RakshaLink</string>
+    <string name="gcm_defaultSenderId" translatable="false">123456789012</string>
+    <string name="google_api_key" translatable="false">AIzaSyPlaceholderApiKey</string>
+    <string name="google_app_id" translatable="false">1:123456789012:android:abcdef1234567890</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyPlaceholderApiKey</string>
+    <string name="google_storage_bucket" translatable="false">rakshalink-app.appspot.com</string>
+    <string name="notification_channel_battery">Device Battery</string>
+    <string name="notification_channel_battery_desc">Low and critical battery warnings</string>
+    <string name="notification_channel_fall">Fall Detection</string>
+    <string name="notification_channel_fall_desc">Alerts for detected impact or fall events</string>
+    <string name="notification_channel_general">General Updates</string>
+    <string name="notification_channel_general_desc">General application and system status updates</string>
+    <string name="notification_channel_sos">Emergency SOS</string>
+    <string name="notification_channel_sos_desc">Critical emergency alerts and SOS notifications</string>
+    <string name="notification_channel_zone">Safe Zone Alerts</string>
+    <string name="notification_channel_zone_desc">Notifications for entry and exit from safe zones</string>
+    <string name="project_id" translatable="false">rakshalink-app</string>
+    <style name="Theme.RakshaLink" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#080A0D</item>
+        <item name="android:navigationBarColor">#080A0D</item>
+        <item name="android:windowBackground">#080A0D</item>
+    </style>
+</resources>
