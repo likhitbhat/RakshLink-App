@@ -82,4 +82,31 @@ class TwilioAuthApi @Inject constructor() {
             )
         }
     }
+
+    suspend fun sendGuardianInvite(
+        wearerId: String,
+        wearerName: String,
+        inviteeContact: String,
+        inviteId: String
+    ): SendOtpResponse {
+        return try {
+            val response = client.post("$baseUrl/api/guardian/send-invite") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    com.rakshalink.data.remote.dto.SendInviteRequest(
+                        wearerId = wearerId,
+                        wearerName = wearerName,
+                        inviteeContact = inviteeContact,
+                        inviteId = inviteId
+                    )
+                )
+            }
+            response.body<SendOtpResponse>()
+        } catch (e: Exception) {
+            SendOtpResponse(
+                success = false,
+                message = e.localizedMessage ?: "Unable to dispatch SMS invite."
+            )
+        }
+    }
 }

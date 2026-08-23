@@ -93,8 +93,29 @@ data class GuardianLinkDto(
     val id: String = "",
     @SerialName("wearer_id") val wearerId: String = "",
     @SerialName("guardian_id") val guardianId: String = "",
+    val role: String = "secondary",
+    val status: String = "active",
+    @SerialName("linked_at") val linkedAt: String = ""
+)
+
+@Serializable
+data class GuardianInviteDto(
+    val id: String = "",
+    @SerialName("wearer_id") val wearerId: String = "",
+    @SerialName("invitee_contact") val inviteeContact: String = "",
     val status: String = "pending",
-    @SerialName("created_at") val createdAt: String = ""
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("expires_at") val expiresAt: String = ""
+)
+
+@Serializable
+data class WearerGuardianLinkDto(
+    val id: String = "",
+    @SerialName("wearer_id") val wearerId: String = "",
+    @SerialName("guardian_id") val guardianId: String = "",
+    val role: String = "secondary",
+    val status: String = "active",
+    @SerialName("linked_at") val linkedAt: String = ""
 )
 
 @Serializable

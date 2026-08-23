@@ -34,3 +34,11 @@ data class UserProfileDto(
     val role: String,
     val wearer_code: String? = null
 )
+
+@Serializable
+data class SendInviteRequest(
+    val wearerId: String = "",
+    val wearerName: String = "",
+    val inviteeContact: String = "",
+    val inviteId: String = ""
+)

@@ -236,6 +236,59 @@ async function handleResendOtp(req, res, next) {
   }
 }
 
+/**
+ * Controller: Send Guardian Invite SMS with Deep Link via Twilio
+ */
+async function handleSendGuardianInvite(req, res, next) {
+  try {
+    const { wearerId, wearerName, inviteeContact, inviteId } = req.body;
+    if (!inviteeContact) {
+      return res.status(400).json({ success: false, message: 'Invitee contact phone or email is required.' });
+    }
+
+    const phoneCheck = validateAndFormatPhone(inviteeContact);
+    if (!phoneCheck.valid) {
+      return res.status(400).json({ success: false, message: phoneCheck.error });
+    }
+
+    const formattedPhone = phoneCheck.e164;
+    const cleanWearerName = wearerName || 'A RakshaLink Wearer';
+    const cleanInviteId = inviteId || 'inv_' + Date.now();
+
+    const deepLinkUrl = `rakshalink://invite/${cleanInviteId}`;
+    const webUrl = `https://rakshlink-app.onrender.com/invite/${cleanInviteId}`;
+
+    const smsMessage = `🛡️ RAKSHALINK GUARDIAN INVITATION\n${cleanWearerName} has invited you to be their safety guardian on RakshaLink!\n\nTap to accept & view live location:\n${webUrl}\n(App Link: ${deepLinkUrl})\n\nExpires in 48 hours.`;
+
+    console.log(`[Twilio Backend] Sending Guardian Invite SMS to ${formattedPhone}...`);
+
+    if (!twilioClient) {
+      console.log(`[Twilio Backend (DEMO MODE)] Simulated Guardian Invite SMS sent to ${formattedPhone}:\n${smsMessage}`);
+      return res.json({
+        success: true,
+        message: `Guardian invitation SMS sent to ${formattedPhone} (Demo Mode)`
+      });
+    }
+
+    // Dispatch Twilio Programmable SMS
+    const messageResult = await twilioClient.messages.create({
+      to: formattedPhone,
+      from: process.env.TWILIO_PHONE_NUMBER || undefined,
+      body: smsMessage
+    });
+
+    console.log(`[Twilio Backend] Guardian Invite SMS sent successfully. SID: ${messageResult.sid}`);
+
+    return res.json({
+      success: true,
+      message: `Guardian invitation SMS sent successfully to ${formattedPhone}`,
+      sid: messageResult.sid
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 // Routes with /api/auth prefix & short aliases
 app.post('/api/auth/send-otp', phoneRateLimiter, handleSendOtp);
 app.post('/send-otp', phoneRateLimiter, handleSendOtp);
@@ -245,6 +298,9 @@ app.post('/verify-otp', handleVerifyOtp);
 
 app.post('/api/auth/resend-otp', phoneRateLimiter, handleResendOtp);
 app.post('/resend-otp', phoneRateLimiter, handleResendOtp);
+
+app.post('/api/guardian/send-invite', handleSendGuardianInvite);
+app.post('/send-invite', handleSendGuardianInvite);
 
 // Centralized JSON Error Handler Middleware
 app.use((err, req, res, next) => {

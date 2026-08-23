@@ -59,6 +59,9 @@ fun GuardianDashboardScreen(
     onNavigateToMap: () -> Unit
 ) {
     val wearers by viewModel.linkedWearersState.collectAsState()
+    val pendingInvites by viewModel.pendingInvitesState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     val guardianName = "Lakki Bhat"
     val guardianId = "b2f46410-1136-42f8-9432-fca0e9ba5f47"
 
@@ -112,7 +115,75 @@ fun GuardianDashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Pending Guardian Invitations Banner
+        if (pendingInvites.isNotEmpty()) {
+            pendingInvites.forEach { invite ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF2B1C0B))
+                        .border(1.dp, Color(0xFFF97316), RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Invite",
+                                tint = Color(0xFFF97316),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "PENDING GUARDIAN INVITATION",
+                                color = Color(0xFFF97316),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "A wearer has invited you to be their safety guardian! Accept to start tracking live location.",
+                            color = TextPrimary,
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    viewModel.acceptInvite(invite.id, invite.wearerId) { success, msg ->
+                                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = StatusSafe),
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Accept Invite ✓", color = BackgroundDark, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.rejectInvite(invite.id) { success, msg ->
+                                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF451A03))
+                            ) {
+                                Text("Reject", fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
 
         // Watching Summary Card
         GlassCard(

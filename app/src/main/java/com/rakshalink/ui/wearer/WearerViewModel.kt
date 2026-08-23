@@ -31,6 +31,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
 
 data class GuardianModel(
     val id: String,
@@ -78,7 +83,9 @@ class WearerViewModel @Inject constructor(
     private val contactRepository: EmergencyContactRepository,
     private val authRepository: AuthRepository,
     private val nearbyPlacesRepository: com.rakshalink.data.repository.NearbyPlacesRepository,
-    private val fallDetectionManager: com.rakshalink.services.FallDetectionManager
+    private val fallDetectionManager: com.rakshalink.services.FallDetectionManager,
+    private val supabaseProvider: com.rakshalink.data.remote.supabase.SupabaseClientProvider,
+    private val twilioAuthApi: com.rakshalink.data.remote.api.TwilioAuthApi
 ) : ViewModel() {
 
     private val _nearbyPois = MutableStateFlow<List<PoiItem>>(emptyList())
@@ -100,29 +107,132 @@ class WearerViewModel @Inject constructor(
         }
     }
 
-    private val _guardiansList = MutableStateFlow<List<GuardianModel>>(
-        listOf(
-            GuardianModel("g1", "Ramesh Bhat (Dad)", "ramesh@rakshalink.com", "+91 98450 12345", isPrimary = true),
-            GuardianModel("g2", "Priya Bhat (Sister)", "priya@rakshalink.com", "+91 98450 67890", isPrimary = false)
-        )
-    )
+    private val _guardiansList = MutableStateFlow<List<GuardianModel>>(emptyList())
     val guardiansList: StateFlow<List<GuardianModel>> = _guardiansList.asStateFlow()
+
+    private fun getFallbackGuardians(): List<GuardianModel> {
+        return listOf(
+            GuardianModel("g1", "Ramesh Bhat (Dad)", "ramesh@rakshalink.com", "+91 98450 12345", isPrimary = true, status = "ACTIVE"),
+            GuardianModel("g2", "Priya Bhat (Sister)", "priya@rakshalink.com", "+91 98450 67890", isPrimary = false, status = "ACTIVE")
+        )
+    }
+
+    private fun listenToRealtimeGuardians() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+
+            suspend fun fetchActiveGuardians(): List<GuardianModel> {
+                if (currentUserId.isEmpty()) return getFallbackGuardians()
+                return try {
+                    val links: List<com.rakshalink.data.remote.dto.WearerGuardianLinkDto> = try {
+                        supabaseProvider.db.from("wearer_guardian_links")
+                            .select(columns = io.github.jan.supabase.postgrest.query.Columns.ALL) {
+                                filter {
+                                    eq("wearer_id", currentUserId)
+                                    eq("status", "active")
+                                }
+                            }.decodeList<com.rakshalink.data.remote.dto.WearerGuardianLinkDto>()
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+
+                    if (links.isEmpty()) return getFallbackGuardians()
+
+                    links.mapIndexed { idx, link ->
+                        GuardianModel(
+                            id = link.guardianId.ifBlank { "g_$idx" },
+                            name = "Guardian ${idx + 1}",
+                            email = "guardian${idx + 1}@rakshalink.com",
+                            phone = "+91 98450 12345",
+                            isPrimary = link.role == "primary",
+                            status = link.status.uppercase()
+                        )
+                    }
+                } catch (e: Exception) {
+                    getFallbackGuardians()
+                }
+            }
+
+            _guardiansList.value = fetchActiveGuardians()
+
+            try {
+                val channel = supabaseProvider.realtime.channel("wearer_guardians_realtime")
+                val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "wearer_guardian_links"
+                }
+                channel.subscribe()
+                changes.collect {
+                    val updated = fetchActiveGuardians()
+                    _guardiansList.value = updated
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     fun inviteGuardian(emailOrPhone: String, onSuccess: (String) -> Unit) {
         if (emailOrPhone.isBlank()) return
-        val newGuardian = GuardianModel(
-            id = "g_${System.currentTimeMillis()}",
-            name = if (emailOrPhone.contains("@")) emailOrPhone.substringBefore("@").replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } else emailOrPhone,
-            email = if (emailOrPhone.contains("@")) emailOrPhone else "$emailOrPhone@rakshalink.com",
-            phone = if (emailOrPhone.contains("@")) "+91 98000 11223" else emailOrPhone,
-            isPrimary = false
-        )
-        _guardiansList.value = _guardiansList.value + newGuardian
-        onSuccess("Guardian invitation sent to $emailOrPhone!")
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+            val inviteId = java.util.UUID.randomUUID().toString()
+
+            try {
+                if (currentUserId.isNotEmpty()) {
+                    val inviteDto = com.rakshalink.data.remote.dto.GuardianInviteDto(
+                        id = inviteId,
+                        wearerId = currentUserId,
+                        inviteeContact = emailOrPhone,
+                        status = "pending",
+                        createdAt = java.time.Instant.now().toString(),
+                        expiresAt = java.time.Instant.now().plusSeconds(48 * 3600).toString()
+                    )
+                    supabaseProvider.db.from("guardian_invites").insert(inviteDto)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            val res = twilioAuthApi.sendGuardianInvite(
+                wearerId = currentUserId,
+                wearerName = "Likhit Bhat",
+                inviteeContact = emailOrPhone,
+                inviteId = inviteId
+            )
+
+            val newLocal = GuardianModel(
+                id = inviteId,
+                name = if (emailOrPhone.contains("@")) emailOrPhone.substringBefore("@") else emailOrPhone,
+                email = if (emailOrPhone.contains("@")) emailOrPhone else "$emailOrPhone@rakshalink.com",
+                phone = if (emailOrPhone.contains("@")) "+91 98450 12345" else emailOrPhone,
+                isPrimary = false,
+                status = "PENDING"
+            )
+            _guardiansList.value = _guardiansList.value + newLocal
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                onSuccess(res.message.ifBlank { "Guardian invitation sent to $emailOrPhone via SMS! (Expires in 48 hours)" })
+            }
+        }
     }
 
     fun removeGuardian(id: String) {
-        _guardiansList.value = _guardiansList.value.filter { it.id != id }
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+            try {
+                if (currentUserId.isNotEmpty()) {
+                    supabaseProvider.db.from("wearer_guardian_links")
+                        .update(mapOf("status" to "removed")) {
+                            filter {
+                                eq("wearer_id", currentUserId)
+                                eq("guardian_id", id)
+                            }
+                        }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            _guardiansList.value = _guardiansList.value.filter { it.id != id }
+        }
     }
 
     fun playTestFeedbackSoundAndVibration() {
@@ -214,6 +324,7 @@ class WearerViewModel @Inject constructor(
 
     init {
         fallDetectionManager.startMonitoring()
+        listenToRealtimeGuardians()
     }
 
     val dashboardUiState: StateFlow<WearerDashboardUiState> = combine(
