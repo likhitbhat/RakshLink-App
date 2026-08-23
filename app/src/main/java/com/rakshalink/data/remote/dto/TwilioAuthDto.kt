@@ -25,3 +25,12 @@ data class VerifyOtpResponse(
     val verified: Boolean = false,
     val message: String = ""
 )
+
+@Serializable
+data class UserProfileDto(
+    val id: String,
+    val phone: String,
+    val full_name: String,
+    val role: String,
+    val wearer_code: String? = null
+)

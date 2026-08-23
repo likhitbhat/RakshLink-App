@@ -21,6 +21,9 @@ class UserPreferencesManager @Inject constructor(
 ) {
     companion object {
         val KEY_USER_ROLE = stringPreferencesKey("user_role")
+        val KEY_USER_PHONE = stringPreferencesKey("user_phone")
+        val KEY_USER_ID = stringPreferencesKey("user_id")
+        val KEY_IS_AUTHENTICATED = booleanPreferencesKey("is_authenticated")
         val KEY_SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
         val KEY_VIBRATION_ENABLED = booleanPreferencesKey("vibration_enabled")
         val KEY_QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
@@ -59,6 +62,15 @@ class UserPreferencesManager @Inject constructor(
 
     suspend fun setUserRole(role: String) {
         context.dataStore.edit { prefs -> prefs[KEY_USER_ROLE] = role }
+    }
+
+    suspend fun saveAuthSession(userId: String, phone: String, role: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_USER_ID] = userId
+            prefs[KEY_USER_PHONE] = phone
+            prefs[KEY_USER_ROLE] = role
+            prefs[KEY_IS_AUTHENTICATED] = true
+        }
     }
 
     suspend fun setSoundEnabled(enabled: Boolean) {
