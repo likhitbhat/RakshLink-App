@@ -7,8 +7,29 @@ import androidx.room.Query
 import com.rakshalink.data.local.entities.CachedAlertEntity
 import com.rakshalink.data.local.entities.CachedLocationEntity
 import com.rakshalink.data.local.entities.CachedSafeZoneEntity
+import com.rakshalink.data.local.entities.EmergencyContactEntity
 import com.rakshalink.data.local.entities.PendingSyncEntity
+import com.rakshalink.data.local.entities.UserEntity
+import com.rakshalink.data.local.entities.WearerGuardianLinkEntity
 import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface UserDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: UserEntity)
+
+    @Query("SELECT * FROM cached_users WHERE id = :userId LIMIT 1")
+    fun getUserById(userId: String): Flow<UserEntity?>
+}
+
+@Dao
+interface WearerGuardianLinkDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLinks(links: List<WearerGuardianLinkEntity>)
+
+    @Query("SELECT * FROM cached_wearer_guardian_links WHERE guardianId = :guardianId AND status = 'active'")
+    fun getLinkedWearersForGuardian(guardianId: String): Flow<List<WearerGuardianLinkEntity>>
+}
 
 @Dao
 interface LocationDao {
@@ -17,6 +38,9 @@ interface LocationDao {
 
     @Query("SELECT * FROM cached_locations ORDER BY timestamp DESC LIMIT 1")
     fun getLatestLocation(): Flow<CachedLocationEntity?>
+
+    @Query("SELECT * FROM cached_locations WHERE userId = :userId ORDER BY timestamp DESC LIMIT 1")
+    fun getLatestLocationForUser(userId: String): Flow<CachedLocationEntity?>
 
     @Query("SELECT * FROM cached_locations WHERE isSynced = 0")
     suspend fun getUnsyncedLocations(): List<CachedLocationEntity>
@@ -50,6 +74,15 @@ interface SafeZoneDao {
 
     @Query("DELETE FROM cached_safe_zones WHERE id = :id")
     suspend fun deleteSafeZone(id: String)
+}
+
+@Dao
+interface EmergencyContactDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertContacts(contacts: List<EmergencyContactEntity>)
+
+    @Query("SELECT * FROM cached_emergency_contacts WHERE wearerId = :wearerId")
+    fun getContactsForWearer(wearerId: String): Flow<List<EmergencyContactEntity>>
 }
 
 @Dao

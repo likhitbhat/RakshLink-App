@@ -3,9 +3,12 @@ package com.rakshalink.di
 import android.content.Context
 import androidx.room.Room
 import com.rakshalink.data.local.dao.AlertDao
+import com.rakshalink.data.local.dao.EmergencyContactDao
 import com.rakshalink.data.local.dao.LocationDao
 import com.rakshalink.data.local.dao.PendingSyncDao
 import com.rakshalink.data.local.dao.SafeZoneDao
+import com.rakshalink.data.local.dao.UserDao
+import com.rakshalink.data.local.dao.WearerGuardianLinkDao
 import com.rakshalink.data.local.database.RakshaLinkDatabase
 import dagger.Module
 import dagger.Provides
@@ -29,6 +32,12 @@ object DatabaseModule {
     }
 
     @Provides
+    fun provideUserDao(db: RakshaLinkDatabase): UserDao = db.userDao()
+
+    @Provides
+    fun provideWearerGuardianLinkDao(db: RakshaLinkDatabase): WearerGuardianLinkDao = db.wearerGuardianLinkDao()
+
+    @Provides
     fun provideLocationDao(db: RakshaLinkDatabase): LocationDao = db.locationDao()
 
     @Provides
@@ -36,6 +45,9 @@ object DatabaseModule {
 
     @Provides
     fun provideSafeZoneDao(db: RakshaLinkDatabase): SafeZoneDao = db.safeZoneDao()
+
+    @Provides
+    fun provideEmergencyContactDao(db: RakshaLinkDatabase): EmergencyContactDao = db.emergencyContactDao()
 
     @Provides
     fun providePendingSyncDao(db: RakshaLinkDatabase): PendingSyncDao = db.pendingSyncDao()
