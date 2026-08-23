@@ -107,6 +107,14 @@ class WearerViewModel @Inject constructor(
         }
     }
 
+    suspend fun sendTwilioOtp(phone: String): com.rakshalink.data.remote.dto.SendOtpResponse {
+        return twilioAuthApi.sendOtp(phone)
+    }
+
+    suspend fun verifyTwilioOtp(phone: String, otp: String): com.rakshalink.data.remote.dto.VerifyOtpResponse {
+        return twilioAuthApi.verifyOtp(phone, otp)
+    }
+
     private val _guardiansList = MutableStateFlow<List<GuardianModel>>(emptyList())
     val guardiansList: StateFlow<List<GuardianModel>> = _guardiansList.asStateFlow()
 

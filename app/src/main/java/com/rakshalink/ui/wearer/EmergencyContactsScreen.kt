@@ -59,7 +59,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -271,9 +273,10 @@ fun EmergencyContactsScreen(
             }
         }
 
-        // Add Contact Modal (Step 1 -> Automatic SMS Step 2 OTP Verification)
+        // Add Contact Modal (Step 1 -> Twilio Verify API v2 OTP Verification)
         if (showAddModal) {
             AddContactWithVerificationModal(
+                viewModel = viewModel,
                 onSaveVerifiedContact = { newContact ->
                     viewModel.addContact(newContact)
                     showAddModal = false
@@ -283,9 +286,10 @@ fun EmergencyContactsScreen(
             )
         }
 
-        // Real Automatic OTP Verification Modal for Unverified Contacts
+        // Real Twilio OTP Verification Modal for Unverified Contacts
         verifyingContactTarget?.let { contactToVerify ->
             OtpVerificationModal(
+                viewModel = viewModel,
                 contactName = contactToVerify.name,
                 phoneNumber = contactToVerify.phoneNumber,
                 onVerificationSuccess = {
@@ -447,37 +451,20 @@ private fun ContactItemCard(
 
 @Composable
 private fun AddContactWithVerificationModal(
+    viewModel: WearerViewModel,
     onSaveVerifiedContact: (EmergencyContactModel) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var step by remember { mutableIntStateOf(1) }
+    var isLoading by remember { mutableStateOf(false) }
 
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var relationship by remember { mutableStateOf("Family") }
     var isPrimary by remember { mutableStateOf(false) }
-
-    // Dynamic Real 4-Digit Generated OTP Code
-    var realOtpCode by remember { mutableStateOf("") }
-
-    // Runtime Permission Launcher for SEND_SMS
-    val smsPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted && phone.isNotBlank() && realOtpCode.isNotBlank()) {
-            val (_, msg) = sendRealVerificationSms(context, phone, realOtpCode)
-            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-        } else {
-            val cleanPhone = phone.replace(Regex("[^0-9+]"), "")
-            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$cleanPhone")).apply {
-                putExtra("sms_body", "[RakshaLink] Emergency contact verification code: $realOtpCode")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            try { context.startActivity(intent) } catch (e: Exception) {}
-        }
-    }
 
     GlassBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -568,33 +555,44 @@ private fun AddContactWithVerificationModal(
                 Button(
                     onClick = {
                         if (name.isNotBlank() && phone.isNotBlank()) {
-                            val newOtp = (1000..9999).random().toString()
-                            realOtpCode = newOtp
-                            val (success, msg) = sendRealVerificationSms(context, phone, newOtp)
-                            if (!success && msg == "PERMISSION_REQUIRED") {
-                                smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-                            } else {
-                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            isLoading = true
+                            scope.launch {
+                                android.util.Log.d("RakshaOTP", "[Twilio OTP Request] Sending Twilio Verify OTP to $phone")
+                                val res = viewModel.sendTwilioOtp(phone)
+                                isLoading = false
+                                if (res.success) {
+                                    android.util.Log.d("RakshaOTP", "[Twilio OTP Success] OTP dispatched via Twilio to $phone")
+                                    Toast.makeText(context, res.message.ifBlank { "Twilio OTP sent to $phone" }, Toast.LENGTH_LONG).show()
+                                    step = 2
+                                } else {
+                                    android.util.Log.e("RakshaOTP", "[Twilio OTP Failed] ${res.message}")
+                                    Toast.makeText(context, "Twilio Error: ${res.message}", Toast.LENGTH_LONG).show()
+                                }
                             }
-                            step = 2
                         } else {
                             Toast.makeText(context, "Please enter both Contact Name and Phone Number", Toast.LENGTH_SHORT).show()
                         }
                     },
+                    enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = CyanAccent),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Send SMS Verification Code ➔", color = BackgroundDark, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (isLoading) "Sending Twilio SMS..." else "Send Twilio Verification OTP ➔",
+                        color = BackgroundDark,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             } else {
-                // STEP 2: Real Automatic OTP Verification
+                // STEP 2: Twilio Verify API v2 OTP Check
                 OtpVerificationContent(
+                    viewModel = viewModel,
                     contactName = name,
                     phoneNumber = phone,
-                    correctOtp = realOtpCode,
                     onVerified = {
                         onSaveVerifiedContact(
                             EmergencyContactModel(
@@ -607,17 +605,6 @@ private fun AddContactWithVerificationModal(
                             )
                         )
                     },
-                    onResendRequested = {
-                        val newOtp = (1000..9999).random().toString()
-                        realOtpCode = newOtp
-                        val (success, msg) = sendRealVerificationSms(context, phone, newOtp)
-                        if (!success && msg == "PERMISSION_REQUIRED") {
-                            smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-                        } else {
-                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                        }
-                        newOtp
-                    },
                     onBackToStep1 = { step = 1 }
                 )
             }
@@ -627,29 +614,20 @@ private fun AddContactWithVerificationModal(
 
 @Composable
 private fun OtpVerificationModal(
+    viewModel: WearerViewModel,
     contactName: String,
     phoneNumber: String,
     onVerificationSuccess: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var realOtpCode by remember { mutableStateOf((1000..9999).random().toString()) }
-
-    val smsPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            val (_, msg) = sendRealVerificationSms(context, phoneNumber, realOtpCode)
-            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-        }
-    }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        val (success, msg) = sendRealVerificationSms(context, phoneNumber, realOtpCode)
-        if (!success && msg == "PERMISSION_REQUIRED") {
-            smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-        } else {
-            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        scope.launch {
+            android.util.Log.d("RakshaOTP", "[Twilio OTP Request Modal] Sending Twilio Verify OTP to $phoneNumber")
+            val res = viewModel.sendTwilioOtp(phoneNumber)
+            Toast.makeText(context, res.message, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -660,21 +638,10 @@ private fun OtpVerificationModal(
                 .padding(24.dp)
         ) {
             OtpVerificationContent(
+                viewModel = viewModel,
                 contactName = contactName,
                 phoneNumber = phoneNumber,
-                correctOtp = realOtpCode,
                 onVerified = onVerificationSuccess,
-                onResendRequested = {
-                    val newOtp = (1000..9999).random().toString()
-                    realOtpCode = newOtp
-                    val (success, msg) = sendRealVerificationSms(context, phoneNumber, newOtp)
-                    if (!success && msg == "PERMISSION_REQUIRED") {
-                        smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-                    } else {
-                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                    }
-                    newOtp
-                },
                 onBackToStep1 = onDismiss
             )
         }
@@ -683,23 +650,21 @@ private fun OtpVerificationModal(
 
 @Composable
 private fun OtpVerificationContent(
+    viewModel: WearerViewModel,
     contactName: String,
     phoneNumber: String,
-    correctOtp: String,
     onVerified: () -> Unit,
-    onResendRequested: () -> String,
     onBackToStep1: () -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var typedOtpCode by remember { mutableStateOf("") }
-    var activeCorrectOtp by remember { mutableStateOf(correctOtp) }
     var errorMessage by remember { mutableStateOf("") }
+    var isVerifying by remember { mutableStateOf(false) }
 
     var timerSeconds by remember { mutableIntStateOf(30) }
     var isTimerRunning by remember { mutableStateOf(true) }
-
-    LaunchedEffect(correctOtp) {
-        activeCorrectOtp = correctOtp
-    }
 
     LaunchedEffect(isTimerRunning) {
         if (isTimerRunning) {
@@ -717,20 +682,20 @@ private fun OtpVerificationContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("SMS Verification Code", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Twilio SMS Verification", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFF0F2922))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text("AUTOMATIC SMS SENT", color = StatusSafe, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("TWILIO VERIFY API v2", color = StatusSafe, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "We automatically sent a 4-digit SMS verification code to $phoneNumber for $contactName. Enter the code below.",
+            text = "Twilio sent an official SMS verification OTP to $phoneNumber for $contactName. Enter the code below.",
             color = TextSecondary,
             fontSize = 12.sp,
             modifier = Modifier.fillMaxWidth()
@@ -738,29 +703,29 @@ private fun OtpVerificationContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 4-Box OTP Input Visual
+        // 4 to 6-Box OTP Input Visual
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val digits = typedOtpCode.padEnd(4, ' ').take(4)
+            val digits = typedOtpCode.padEnd(6, ' ').take(6)
             digits.forEach { char ->
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(Color(0xFF0B132B))
                         .border(
                             1.5.dp,
                             if (errorMessage.isNotEmpty()) PrimaryRed else CyanAccent,
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(10.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (char != ' ') char.toString() else "-",
                         color = if (errorMessage.isNotEmpty()) PrimaryRed else CyanAccent,
-                        fontSize = 24.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -773,12 +738,12 @@ private fun OtpVerificationContent(
         OutlinedTextField(
             value = typedOtpCode,
             onValueChange = {
-                if (it.length <= 4) {
+                if (it.length <= 6) {
                     typedOtpCode = it
                     errorMessage = ""
                 }
             },
-            label = { Text("Enter 4-digit SMS OTP", textAlign = TextAlign.Center) },
+            label = { Text("Enter Twilio SMS OTP Code", textAlign = TextAlign.Center) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
@@ -822,38 +787,50 @@ private fun OtpVerificationContent(
             }
 
             Text(
-                text = "Resend SMS",
+                text = "Resend Twilio SMS",
                 color = if (timerSeconds == 0) CyanAccent else TextSecondary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable(enabled = timerSeconds == 0) {
-                    val newCode = onResendRequested()
-                    activeCorrectOtp = newCode
-                    typedOtpCode = ""
-                    errorMessage = ""
-                    timerSeconds = 30
-                    isTimerRunning = true
+                    scope.launch {
+                        android.util.Log.d("RakshaOTP", "[Twilio Resend Request] Resending Twilio OTP to $phoneNumber")
+                        val res = viewModel.sendTwilioOtp(phoneNumber)
+                        Toast.makeText(context, res.message, Toast.LENGTH_LONG).show()
+                        typedOtpCode = ""
+                        errorMessage = ""
+                        timerSeconds = 30
+                        isTimerRunning = true
+                    }
                 }
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Verify Button with Real Code Check
+        // Verify Button with Real Twilio Backend Verification
         Button(
             onClick = {
-                val isMatch = (typedOtpCode == activeCorrectOtp)
-                android.util.Log.d("RakshaOTP", "[OTP Comparison] Typed: '$typedOtpCode', Expected: '$activeCorrectOtp', ResultMatch: $isMatch")
-                if (typedOtpCode.length < 4) {
-                    errorMessage = "Please enter the complete 4-digit SMS OTP code."
-                } else if (!isMatch) {
-                    errorMessage = "Incorrect OTP code ($typedOtpCode)! Check your SMS and try again."
+                if (typedOtpCode.isBlank()) {
+                    errorMessage = "Please enter the SMS OTP code received from Twilio."
                 } else {
-                    errorMessage = ""
-                    android.util.Log.d("RakshaOTP", "[OTP Verified Success] OTP match confirmed! Executing onVerified callback")
-                    onVerified()
+                    isVerifying = true
+                    scope.launch {
+                        android.util.Log.d("RakshaOTP", "[Twilio Verify Call] Verifying OTP '$typedOtpCode' for $phoneNumber via Twilio Verify API v2")
+                        val verifyRes = viewModel.verifyTwilioOtp(phoneNumber, typedOtpCode)
+                        isVerifying = false
+                        android.util.Log.d("RakshaOTP", "[Twilio Verify Response] verified=${verifyRes.verified}, success=${verifyRes.success}, msg=${verifyRes.message}")
+
+                        if (verifyRes.verified || verifyRes.success) {
+                            android.util.Log.d("RakshaOTP", "[Twilio Verify Success] Code verified by Twilio Verify API v2! Saving contact")
+                            errorMessage = ""
+                            onVerified()
+                        } else {
+                            errorMessage = verifyRes.message.ifBlank { "Invalid Twilio OTP code ($typedOtpCode). Please check your SMS and try again." }
+                        }
+                    }
                 }
             },
+            enabled = !isVerifying,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -863,7 +840,7 @@ private fun OtpVerificationContent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CheckCircle, contentDescription = "Verify", tint = BackgroundDark, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Verify & Save Contact ✓", color = BackgroundDark, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(if (isVerifying) "Verifying with Twilio..." else "Verify & Save Contact ✓", color = BackgroundDark, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
 
