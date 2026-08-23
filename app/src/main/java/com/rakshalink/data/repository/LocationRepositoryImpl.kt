@@ -7,6 +7,7 @@ import com.rakshalink.data.remote.supabase.SupabaseClientProvider
 import com.rakshalink.domain.model.LocationModel
 import com.rakshalink.domain.repository.LocationRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
@@ -15,7 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class LocationRepositoryImpl @Inject constructor(
     private val locationDao: LocationDao,
-    private val supabaseProvider: SupabaseClientProvider
+    private val supabaseProvider: SupabaseClientProvider,
+    private val preferencesManager: com.rakshalink.data.preferences.UserPreferencesManager
 ) : LocationRepository {
 
     override fun getLatestLocation(): Flow<LocationModel?> {
@@ -43,8 +45,10 @@ class LocationRepositoryImpl @Inject constructor(
         }
         var isSynced = false
 
+        val isShareLocationEnabled = try { preferencesManager.shareLocationEnabledFlow.first() } catch (e: Exception) { true }
+
         try {
-            if (resolvedUserId.isNotEmpty()) {
+            if (isShareLocationEnabled && resolvedUserId.isNotEmpty()) {
                 val dto = LiveLocationDto(
                     id = id,
                     userId = resolvedUserId,

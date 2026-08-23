@@ -119,6 +119,18 @@ data class WearerGuardianLinkDto(
 )
 
 @Serializable
+data class UserPreferencesDto(
+    @SerialName("user_id") val userId: String = "",
+    @SerialName("push_enabled") val pushEnabled: Boolean = true,
+    @SerialName("share_location_enabled") val shareLocationEnabled: Boolean = true,
+    val theme: String = "dark",
+    val language: String = "en",
+    @SerialName("alert_sound_enabled") val alertSoundEnabled: Boolean = true,
+    @SerialName("vibration_enabled") val vibrationEnabled: Boolean = true,
+    @SerialName("alert_volume") val alertVolume: Int = 80
+)
+
+@Serializable
 data class ZoneEventDto(
     val id: String = "",
     @SerialName("user_id") val userId: String = "",

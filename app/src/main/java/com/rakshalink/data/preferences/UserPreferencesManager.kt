@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,8 +25,13 @@ class UserPreferencesManager @Inject constructor(
         val KEY_USER_PHONE = stringPreferencesKey("user_phone")
         val KEY_USER_ID = stringPreferencesKey("user_id")
         val KEY_IS_AUTHENTICATED = booleanPreferencesKey("is_authenticated")
+        val KEY_PUSH_ENABLED = booleanPreferencesKey("push_enabled")
+        val KEY_SHARE_LOCATION_ENABLED = booleanPreferencesKey("share_location_enabled")
+        val KEY_THEME = stringPreferencesKey("theme")
+        val KEY_LANGUAGE = stringPreferencesKey("language")
         val KEY_SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
         val KEY_VIBRATION_ENABLED = booleanPreferencesKey("vibration_enabled")
+        val KEY_ALERT_VOLUME = intPreferencesKey("alert_volume")
         val KEY_QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val KEY_QUIET_HOURS_START = stringPreferencesKey("quiet_hours_start")
         val KEY_QUIET_HOURS_END = stringPreferencesKey("quiet_hours_end")
@@ -36,6 +42,22 @@ class UserPreferencesManager @Inject constructor(
         prefs[KEY_USER_ROLE] ?: "wearer"
     }
 
+    val pushEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_PUSH_ENABLED] ?: true
+    }
+
+    val shareLocationEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_SHARE_LOCATION_ENABLED] ?: true
+    }
+
+    val themeFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_THEME] ?: "dark"
+    }
+
+    val languageFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_LANGUAGE] ?: "en"
+    }
+
     val soundEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_SOUND_ENABLED] ?: true
     }
@@ -44,16 +66,12 @@ class UserPreferencesManager @Inject constructor(
         prefs[KEY_VIBRATION_ENABLED] ?: true
     }
 
+    val alertVolumeFlow: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[KEY_ALERT_VOLUME] ?: 80
+    }
+
     val quietHoursEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_QUIET_HOURS_ENABLED] ?: false
-    }
-
-    val quietHoursStartFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_QUIET_HOURS_START] ?: "22:00"
-    }
-
-    val quietHoursEndFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_QUIET_HOURS_END] ?: "07:00"
     }
 
     val onboardingCompletedFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -73,6 +91,26 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
+    suspend fun clearAuthSession() {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_USER_ID] = ""
+            prefs[KEY_USER_PHONE] = ""
+            prefs[KEY_IS_AUTHENTICATED] = false
+        }
+    }
+
+    suspend fun setPushEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[KEY_PUSH_ENABLED] = enabled }
+    }
+
+    suspend fun setShareLocationEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[KEY_SHARE_LOCATION_ENABLED] = enabled }
+    }
+
+    suspend fun setTheme(theme: String) {
+        context.dataStore.edit { prefs -> prefs[KEY_THEME] = theme }
+    }
+
     suspend fun setSoundEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs -> prefs[KEY_SOUND_ENABLED] = enabled }
     }
@@ -81,12 +119,8 @@ class UserPreferencesManager @Inject constructor(
         context.dataStore.edit { prefs -> prefs[KEY_VIBRATION_ENABLED] = enabled }
     }
 
-    suspend fun setQuietHours(enabled: Boolean, start: String, end: String) {
-        context.dataStore.edit { prefs ->
-            prefs[KEY_QUIET_HOURS_ENABLED] = enabled
-            prefs[KEY_QUIET_HOURS_START] = start
-            prefs[KEY_QUIET_HOURS_END] = end
-        }
+    suspend fun setAlertVolume(volume: Int) {
+        context.dataStore.edit { prefs -> prefs[KEY_ALERT_VOLUME] = volume }
     }
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
