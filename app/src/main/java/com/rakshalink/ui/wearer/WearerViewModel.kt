@@ -368,6 +368,20 @@ class WearerViewModel @Inject constructor(
         }
     }
 
+    private fun getReverseGeocodedAddress(lat: Double, lng: Double): String {
+        return try {
+            val geocoder = android.location.Geocoder(context)
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocation(lat, lng, 1)
+            val addr = addresses?.firstOrNull()
+            val area = addr?.subLocality ?: addr?.locality ?: addr?.subAdminArea ?: "Current Location"
+            val street = addr?.thoroughfare ?: addr?.subThoroughfare ?: "Main Street"
+            "$street, $area"
+        } catch (e: Exception) {
+            "Lat: ${String.format("%.5f", lat)}, Lng: ${String.format("%.5f", lng)}"
+        }
+    }
+
     fun dispatchEmergencySms(context: Context, onResult: (Int, String) -> Unit) {
         val contacts = _contactsList.value
         val loc = locationState.value
@@ -379,13 +393,38 @@ class WearerViewModel @Inject constructor(
             return
         }
 
+        val streetAddr = if (lat != null && lng != null) getReverseGeocodedAddress(lat, lng) else "Location Unknown"
+
         val mapsUrl = if (lat != null && lng != null) {
             "https://maps.google.com/?q=$lat,$lng"
         } else {
-            "GPS Coordinates unavailable"
+            "https://maps.google.com"
         }
 
-        val smsMessage = "🚨 RAKSHALINK EMERGENCY SOS ALERT! I require immediate assistance! My current location: $mapsUrl - Sent via RakshaLink Emergency System"
+        val deepLinkUrl = if (lat != null && lng != null) {
+            "rakshalink://track?lat=$lat&lng=$lng"
+        } else {
+            "rakshalink://track"
+        }
+
+        val webTrackUrl = if (lat != null && lng != null) {
+            "https://rakshlink-app.onrender.com/track?lat=$lat&lng=$lng"
+        } else {
+            "https://rakshlink-app.onrender.com"
+        }
+
+        val smsMessage = """
+🚨 RAKSHALINK EMERGENCY SOS ALERT!
+Likhit Bhat requires immediate help!
+
+📍 Live Location: $streetAddr
+📍 Coordinates: ${if (lat != null && lng != null) "$lat, $lng" else "N/A"}
+🗺️ Google Maps: $mapsUrl
+📱 Track Live in App: $deepLinkUrl
+🌐 Web Live Track: $webTrackUrl
+
+- Sent automatically by RakshaLink Safety App
+""".trimIndent()
 
         var sentCount = 0
         val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -413,7 +452,7 @@ class WearerViewModel @Inject constructor(
         }
 
         if (sentCount > 0) {
-            onResult(sentCount, "🚨 EMERGENCY SOS BROADCAST: Real SMS sent to $sentCount emergency contact(s)!")
+            onResult(sentCount, "🚨 EMERGENCY SOS BROADCAST: Live Location SMS sent to $sentCount emergency contact(s)!")
         } else {
             onResult(0, "No valid emergency contact numbers found to dispatch SMS.")
         }
