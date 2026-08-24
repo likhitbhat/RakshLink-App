@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
@@ -33,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -67,17 +69,20 @@ import androidx.compose.runtime.collectAsState
 @Composable
 fun GuardianSettingsScreen(
     viewModel: GuardianViewModel = hiltViewModel(),
+    onNavigateToMap: () -> Unit = {},
+    onNavigateToAlerts: () -> Unit = {},
     onSignOutClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val guardianInfo by viewModel.guardianInfo.collectAsState()
+    val linkedWearers by viewModel.linkedWearersState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    var pushEnabled by remember { mutableStateOf(false) }
+    var pushEnabled by remember { mutableStateOf(true) }
     var quietHoursEnabled by remember { mutableStateOf(false) }
     var alertSoundsEnabled by remember { mutableStateOf(true) }
     var vibrationEnabled by remember { mutableStateOf(true) }
     var volumeLevel by remember { mutableStateOf(0.8f) }
-    var selectedTheme by remember { mutableStateOf("Dark") }
 
     Column(
         modifier = Modifier
@@ -129,24 +134,52 @@ fun GuardianSettingsScreen(
         Text("LINKED WEARERS", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
         Spacer(modifier = Modifier.height(8.dp))
 
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E293B)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("L", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        if (linkedWearers.isEmpty()) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "No wearers linked yet. Add a wearer using their pairing code.",
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        } else {
+            linkedWearers.forEach { wearer ->
+                GlassCard(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E293B)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(wearer.name.take(1).uppercase(), color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(wearer.name, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Battery: ${wearer.batteryLevel}% · ${wearer.statusText}", color = TextSecondary, fontSize = 11.sp)
+                        }
+                        IconButton(
+                            onClick = {
+                                viewModel.removeWearer(wearer.id) { success, msg ->
+                                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Unlink Wearer",
+                                tint = PrimaryRed,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Likhit Bhat", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text("Safe zones", color = TextSecondary, fontSize = 12.sp)
-                Icon(Icons.Default.ChevronRight, contentDescription = "Safe zones", tint = TextSecondary, modifier = Modifier.size(18.dp))
             }
         }
 
@@ -158,11 +191,11 @@ fun GuardianSettingsScreen(
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column {
-                SettingsNavigationRow(icon = Icons.Default.People, title = "Watched wearers")
+                SettingsNavigationRow(icon = Icons.Default.People, title = "Watched wearers", onClick = onBackClick)
                 HorizontalDivider(color = Color(0xFF1E293B))
-                SettingsNavigationRow(icon = Icons.Default.LocationOn, title = "Live map")
+                SettingsNavigationRow(icon = Icons.Default.LocationOn, title = "Live map", onClick = onNavigateToMap)
                 HorizontalDivider(color = Color(0xFF1E293B))
-                SettingsNavigationRow(icon = Icons.Default.Notifications, title = "Alert history")
+                SettingsNavigationRow(icon = Icons.Default.Notifications, title = "Alert history", onClick = onNavigateToAlerts)
             }
         }
 
@@ -186,13 +219,18 @@ fun GuardianSettingsScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFF332005))
+                                        .background(if (pushEnabled) StatusSafe.copy(alpha = 0.2f) else Color(0xFF332005))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
-                                    Text("NOT ENABLED", color = Color(0xFFFFA726), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = if (pushEnabled) "ENABLED" else "MUTED",
+                                        color = if (pushEnabled) StatusSafe else Color(0xFFFFA726),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
-                            Text("Alerts for SOS, zone events, low battery", color = TextSecondary, fontSize = 12.sp)
+                            Text("Alerts for SOS, zone events & low battery", color = TextSecondary, fontSize = 12.sp)
                         }
                         Switch(
                             checked = pushEnabled,
@@ -213,19 +251,19 @@ fun GuardianSettingsScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "Allow your browser/device to send alerts so you don't miss critical events.",
+                                if (pushEnabled) "Real-time push notifications are active for all critical emergency pings." else "Notifications are muted. You will not receive pop-up alerts.",
                                 color = TextSecondary,
                                 fontSize = 11.sp,
                                 modifier = Modifier.weight(1f)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Button(
-                                onClick = { pushEnabled = true },
+                                onClick = { pushEnabled = !pushEnabled },
                                 colors = ButtonDefaults.buttonColors(containerColor = CyanAccent),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.height(32.dp)
                             ) {
-                                Text("Enable", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(if (pushEnabled) "Disable" else "Enable", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -242,52 +280,14 @@ fun GuardianSettingsScreen(
                     Icon(Icons.Default.NightlightRound, contentDescription = "Quiet", tint = CyanAccent, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Quiet hours", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text("Silence non-critical pings 10pm–7am", color = TextSecondary, fontSize = 12.sp)
+                        Text("Quiet hours & Low Energy mode", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text("Silence non-critical pings & save battery 10pm–7am", color = TextSecondary, fontSize = 12.sp)
                     }
                     Switch(
                         checked = quietHoursEnabled,
                         onCheckedChange = { quietHoursEnabled = it },
                         colors = SwitchDefaults.colors(checkedThumbColor = CyanAccent, checkedTrackColor = StatusSafe)
                     )
-                }
-
-                HorizontalDivider(color = Color(0xFF1E293B))
-
-                // Theme Selector item
-                Row(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.NightlightRound, contentDescription = "Theme", tint = CyanAccent, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Theme", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text("Dark Mode", color = TextSecondary, fontSize = 12.sp)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF0F1E2E))
-                            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(20.dp))
-                            .padding(2.dp)
-                    ) {
-                        Row {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(CyanAccent)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("Dark", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Box(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("Light", color = TextSecondary, fontSize = 11.sp)
-                            }
-                        }
-                    }
                 }
 
                 HorizontalDivider(color = Color(0xFF1E293B))
@@ -375,7 +375,26 @@ fun GuardianSettingsScreen(
 
                 // Preview sound & vibration button
                 OutlinedButton(
-                    onClick = { },
+                    onClick = {
+                        try {
+                            if (alertSoundsEnabled) {
+                                val notificationUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+                                val ringtone = android.media.RingtoneManager.getRingtone(context, notificationUri)
+                                ringtone?.play()
+                            }
+                            if (vibrationEnabled) {
+                                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                    val vm = context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+                                    vm?.defaultVibrator
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                                }
+                                vibrator?.vibrate(android.os.VibrationEffect.createOneShot(300, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                            }
+                            android.widget.Toast.makeText(context, "Testing alert sound & vibration feedback!", android.widget.Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) { e.printStackTrace() }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
@@ -416,7 +435,7 @@ fun GuardianSettingsScreen(
 
         // Footer version
         Text(
-            text = "RakshaLink v1.0 · Demo build",
+            text = "RakshaLink v1.0 · Protected Session",
             color = TextSecondary.copy(alpha = 0.6f),
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
@@ -430,12 +449,13 @@ fun GuardianSettingsScreen(
 @Composable
 private fun SettingsNavigationRow(
     icon: ImageVector,
-    title: String
+    title: String,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable { onClick() }
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

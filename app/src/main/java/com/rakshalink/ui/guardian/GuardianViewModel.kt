@@ -234,6 +234,40 @@ class GuardianViewModel @Inject constructor(
         }
     }
 
+    fun removeWearer(wearerId: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+            try {
+                try {
+                    supabaseProvider.db.from("wearer_guardian_links")
+                        .delete {
+                            filter {
+                                eq("wearer_id", wearerId)
+                                if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
+                            }
+                        }
+                } catch (e: Exception) {
+                    try {
+                        supabaseProvider.db.from("guardian_links")
+                            .delete {
+                                filter {
+                                    eq("wearer_id", wearerId)
+                                    if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
+                                }
+                            }
+                    } catch (e2: Exception) {}
+                }
+                withContext(Dispatchers.Main) {
+                    onResult(true, "Wearer successfully unlinked.")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onResult(false, "Failed to unlink wearer: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
     fun markAlertAsRead(alertId: String) {
         viewModelScope.launch {
             guardianRepository.markAlertAsRead(alertId)
