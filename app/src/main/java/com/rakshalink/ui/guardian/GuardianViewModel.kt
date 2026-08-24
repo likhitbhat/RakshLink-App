@@ -24,10 +24,13 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.first
+
 @HiltViewModel
 class GuardianViewModel @Inject constructor(
     private val guardianRepository: GuardianRepository,
-    private val supabaseProvider: SupabaseClientProvider
+    private val supabaseProvider: SupabaseClientProvider,
+    private val userPreferencesManager: com.rakshalink.data.preferences.UserPreferencesManager
 ) : ViewModel() {
 
     val linkedWearersState: StateFlow<List<WearerModel>> = guardianRepository.getLinkedWearers()
@@ -39,8 +42,40 @@ class GuardianViewModel @Inject constructor(
     private val _pendingInvitesState = MutableStateFlow<List<GuardianInviteDto>>(emptyList())
     val pendingInvitesState: StateFlow<List<GuardianInviteDto>> = _pendingInvitesState.asStateFlow()
 
+    private val _guardianInfo = MutableStateFlow(Pair("Guardian User", "guardian@rakshalink.com"))
+    val guardianInfo: StateFlow<Pair<String, String>> = _guardianInfo.asStateFlow()
+
     init {
         listenToPendingInvites()
+        loadGuardianInfo()
+    }
+
+    private fun loadGuardianInfo() {
+        viewModelScope.launch {
+            val supabaseUser = try { supabaseProvider.auth.currentSessionOrNull()?.user } catch (e: Exception) { null }
+            val supabaseEmail = supabaseUser?.email ?: ""
+            val supabasePhone = supabaseUser?.phone ?: ""
+            val storedEmailOrPhone = try { userPreferencesManager.userPhoneOrEmailFlow.first() } catch (e: Exception) { "" }
+
+            val activeEmail = when {
+                supabaseEmail.isNotEmpty() -> supabaseEmail
+                storedEmailOrPhone.isNotEmpty() -> storedEmailOrPhone
+                supabasePhone.isNotEmpty() -> supabasePhone
+                else -> "guardian@rakshalink.com"
+            }
+
+            val rawName = if (activeEmail.contains("@")) {
+                activeEmail.substringBefore("@")
+                    .split(".", "_", "-")
+                    .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
+            } else if (activeEmail.isNotEmpty()) {
+                activeEmail
+            } else {
+                "Guardian User"
+            }
+
+            _guardianInfo.value = Pair(rawName, activeEmail)
+        }
     }
 
     private fun listenToPendingInvites() {

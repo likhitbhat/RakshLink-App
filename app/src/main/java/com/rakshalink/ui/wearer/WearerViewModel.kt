@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -85,8 +86,50 @@ class WearerViewModel @Inject constructor(
     private val nearbyPlacesRepository: com.rakshalink.data.repository.NearbyPlacesRepository,
     private val fallDetectionManager: com.rakshalink.services.FallDetectionManager,
     private val supabaseProvider: com.rakshalink.data.remote.supabase.SupabaseClientProvider,
-    private val twilioAuthApi: com.rakshalink.data.remote.api.TwilioAuthApi
+    private val twilioAuthApi: com.rakshalink.data.remote.api.TwilioAuthApi,
+    private val userPreferencesManager: com.rakshalink.data.preferences.UserPreferencesManager
 ) : ViewModel() {
+
+    private val _userInfo = MutableStateFlow(Pair("Wearer User", "wearer@rakshalink.com"))
+    val userInfo: StateFlow<Pair<String, String>> = _userInfo.asStateFlow()
+
+    private val _userPairingCode = MutableStateFlow("RL-9842-WK")
+    val userPairingCode: StateFlow<String> = _userPairingCode.asStateFlow()
+
+    private fun loadUserInfo() {
+        viewModelScope.launch {
+            val supabaseUser = try { supabaseProvider.auth.currentSessionOrNull()?.user } catch (e: Exception) { null }
+            val supabaseEmail = supabaseUser?.email ?: ""
+            val supabasePhone = supabaseUser?.phone ?: ""
+            val storedEmailOrPhone = try { userPreferencesManager.userPhoneOrEmailFlow.first() } catch (e: Exception) { "" }
+            val storedUserId = try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+
+            val activeEmail = when {
+                supabaseEmail.isNotEmpty() -> supabaseEmail
+                storedEmailOrPhone.isNotEmpty() -> storedEmailOrPhone
+                supabasePhone.isNotEmpty() -> supabasePhone
+                else -> "wearer@rakshalink.com"
+            }
+
+            val rawName = if (activeEmail.contains("@")) {
+                activeEmail.substringBefore("@")
+                    .split(".", "_", "-")
+                    .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
+            } else if (activeEmail.isNotEmpty()) {
+                activeEmail
+            } else {
+                "Wearer User"
+            }
+
+            _userInfo.value = Pair(rawName, activeEmail)
+
+            val activeUid = if (supabaseUser?.id?.isNotEmpty() == true) supabaseUser.id else storedUserId
+            if (activeUid.isNotEmpty()) {
+                val codeHash = activeUid.take(4).uppercase()
+                _userPairingCode.value = "RL-$codeHash-WK"
+            }
+        }
+    }
 
     private val _nearbyPois = MutableStateFlow<List<PoiItem>>(emptyList())
     val nearbyPois: StateFlow<List<PoiItem>> = _nearbyPois.asStateFlow()
@@ -313,6 +356,7 @@ class WearerViewModel @Inject constructor(
     }
 
     init {
+        loadUserInfo()
         fallDetectionManager.startMonitoring()
         listenToRealtimeGuardians()
         listenToEmergencyContacts()
@@ -326,7 +370,9 @@ class WearerViewModel @Inject constructor(
         _isVoiceSosActive,
         _isDeadManActive,
         _deadManSeconds,
-        _isForceOffline
+        _isForceOffline,
+        _userInfo,
+        _userPairingCode
     ) { args: Array<Any?> ->
         val loc = args[0] as? LocationModel
         val pBattery = (args[1] as? Int) ?: 78
@@ -337,6 +383,9 @@ class WearerViewModel @Inject constructor(
         val deadMan = (args[5] as? Boolean) ?: false
         val dSecs = (args[6] as? Int) ?: 1800
         val forceOffline = (args[7] as? Boolean) ?: false
+        @Suppress("UNCHECKED_CAST")
+        val info = (args[8] as? Pair<String, String>) ?: Pair("Wearer User", "wearer@rakshalink.com")
+        val code = (args[9] as? String) ?: "RL-9842-WK"
 
         // Calculate dynamic Greeting
         val cal = Calendar.getInstance()
@@ -363,7 +412,9 @@ class WearerViewModel @Inject constructor(
         if (safeZones.isNotEmpty() && isInsideZone) score += 25 else if (loc != null) score += 10
 
         WearerDashboardUiState(
-            userName = "Likhit Bhat",
+            userName = info.first,
+            wearerEmail = info.second,
+            wearerPairingCode = code,
             greeting = greetingText,
             isProtected = score >= 50,
             safetyScore = score,

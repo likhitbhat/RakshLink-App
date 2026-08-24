@@ -61,11 +61,17 @@ import com.rakshalink.ui.theme.StatusSafe
 import com.rakshalink.ui.theme.TextPrimary
 import com.rakshalink.ui.theme.TextSecondary
 
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+
 @Composable
 fun GuardianSettingsScreen(
+    viewModel: GuardianViewModel = hiltViewModel(),
     onSignOutClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
+    val guardianInfo by viewModel.guardianInfo.collectAsState()
+
     var pushEnabled by remember { mutableStateOf(false) }
     var quietHoursEnabled by remember { mutableStateOf(false) }
     var alertSoundsEnabled by remember { mutableStateOf(true) }
@@ -95,15 +101,15 @@ fun GuardianSettingsScreen(
                         .background(Color(0xFF1E293B)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("L", color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(guardianInfo.first.take(1).uppercase(), color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.width(14.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Lakki Bhat", color = TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text(guardianInfo.first, color = TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Guardian", color = TextSecondary, fontSize = 12.sp)
+                    Text(guardianInfo.second, color = TextSecondary, fontSize = 12.sp)
                 }
 
                 Box(
