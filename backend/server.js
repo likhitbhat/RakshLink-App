@@ -147,11 +147,11 @@ async function handleVerifyOtp(req, res, next) {
       });
     }
 
-    if (!otp || typeof otp !== 'string' || !/^\d{4}$/.test(otp.trim())) {
+    if (!otp || typeof otp !== 'string' || !/^\d{4,6}$/.test(otp.trim())) {
       return res.status(400).json({
         success: false,
         verified: false,
-        message: 'OTP must be exactly 4 numeric digits.'
+        message: 'OTP must be between 4 and 6 numeric digits.'
       });
     }
 

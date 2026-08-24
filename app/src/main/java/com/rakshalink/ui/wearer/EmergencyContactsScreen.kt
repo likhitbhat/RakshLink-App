@@ -169,12 +169,12 @@ fun EmergencyContactsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Security, contentDescription = "Safety", tint = StatusSafe, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "AUTOMATIC SMS OTP ENGINE",
+                                    text = "TWILIO VERIFY API v2",
                                     color = StatusSafe,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
@@ -193,12 +193,12 @@ fun EmergencyContactsScreen(
                             onClick = { showAddModal = true },
                             colors = ButtonDefaults.buttonColors(containerColor = CyanAccent),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Add, contentDescription = "Add", tint = BackgroundDark, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add", color = BackgroundDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Add", color = BackgroundDark, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
