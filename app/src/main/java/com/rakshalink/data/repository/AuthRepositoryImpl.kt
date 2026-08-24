@@ -26,11 +26,19 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override fun isUserLoggedIn(): Boolean {
-        return supabaseProvider.auth.currentSessionOrNull() != null
+        return try {
+            supabaseProvider.auth.currentSessionOrNull() != null
+        } catch (e: Exception) {
+            false
+        }
     }
 
     override suspend fun getCurrentUserId(): String? {
-        return supabaseProvider.auth.currentSessionOrNull()?.user?.id
+        return try {
+            supabaseProvider.auth.currentSessionOrNull()?.user?.id
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override suspend fun fetchOrRestoreUserRole(): UserRole {

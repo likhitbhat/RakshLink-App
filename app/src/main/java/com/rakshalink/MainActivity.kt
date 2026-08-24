@@ -60,15 +60,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    inactivityTracker.resetUserInteraction { }
-                                }
-                            )
-                        }
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),

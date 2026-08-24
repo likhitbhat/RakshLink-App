@@ -102,29 +102,37 @@ fun RakshaNavGraph(
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 SplashScreen(
                     onSplashFinished = {
-                        if (authViewModel.isUserLoggedIn()) {
-                            scope.launch {
-                                val role = authViewModel.restoreUserRole()
-                                val hasPerms = hasRequiredPermissions(context)
-                                if (!hasPerms) {
-                                    navController.navigate(Screen.Permissions.route) {
-                                        popUpTo(Screen.Splash.route) { inclusive = true }
-                                    }
-                                } else {
-                                    if (role == UserRole.GUARDIAN) {
-                                        navController.navigate(Screen.GuardianDashboard.route) {
+                        scope.launch {
+                            try {
+                                val isLoggedIn = authViewModel.isUserLoggedIn()
+                                if (isLoggedIn) {
+                                    val role = authViewModel.restoreUserRole()
+                                    val hasPerms = hasRequiredPermissions(context)
+                                    if (!hasPerms) {
+                                        navController.navigate(Screen.Permissions.route) {
                                             popUpTo(Screen.Splash.route) { inclusive = true }
                                         }
                                     } else {
-                                        navController.navigate(Screen.WearerDashboard.route) {
-                                            popUpTo(Screen.Splash.route) { inclusive = true }
+                                        if (role == UserRole.GUARDIAN) {
+                                            navController.navigate(Screen.GuardianDashboard.route) {
+                                                popUpTo(Screen.Splash.route) { inclusive = true }
+                                            }
+                                        } else {
+                                            navController.navigate(Screen.WearerDashboard.route) {
+                                                popUpTo(Screen.Splash.route) { inclusive = true }
+                                            }
                                         }
                                     }
+                                } else {
+                                    navController.navigate(Screen.Welcome.route) {
+                                        popUpTo(Screen.Splash.route) { inclusive = true }
+                                    }
                                 }
-                            }
-                        } else {
-                            navController.navigate(Screen.Welcome.route) {
-                                popUpTo(Screen.Splash.route) { inclusive = true }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                navController.navigate(Screen.Welcome.route) {
+                                    popUpTo(Screen.Splash.route) { inclusive = true }
+                                }
                             }
                         }
                     }
