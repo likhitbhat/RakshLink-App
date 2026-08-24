@@ -101,8 +101,7 @@ fun LiveTrackingScreen(
     val context = LocalContext.current
 
     val dashboardUiState by viewModel.dashboardUiState.collectAsState()
-    val isForceOffline by viewModel.isForceOffline.collectAsState()
-    val isOffline = isForceOffline || !dashboardUiState.isNetworkActive || locationState?.isSynced == false
+    val isOffline = !dashboardUiState.isNetworkActive || locationState?.isSynced == false
 
     val currentLat = locationState?.latitude ?: 12.97544
     val currentLng = locationState?.longitude ?: 77.59337
@@ -247,36 +246,6 @@ fun LiveTrackingScreen(
                 color = TextSecondary,
                 fontSize = 13.sp
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Debug-Only Force-Toggle Offline Mode Button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isForceOffline) Color(0xFF451A03) else Color(0xFF0F293B))
-                    .border(1.dp, if (isForceOffline) Color(0xFFF97316) else CyanAccent.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                    .clickable { viewModel.toggleForceOffline() }
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (isForceOffline) Icons.Default.WifiOff else Icons.Default.Wifi,
-                        contentDescription = "Debug Offline",
-                        tint = if (isForceOffline) Color(0xFFF97316) else CyanAccent,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isForceOffline) "⚡ DEBUG: FORCED OFFLINE MODE (ACTIVE)" else "⚡ DEBUG: TOGGLE OFFLINE FALLBACK MODE",
-                        color = if (isForceOffline) Color(0xFFF97316) else CyanAccent,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

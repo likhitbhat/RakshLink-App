@@ -348,13 +348,6 @@ class WearerViewModel @Inject constructor(
 
     private var deadManJob: Job? = null
 
-    private val _isForceOffline = MutableStateFlow(false)
-    val isForceOffline: StateFlow<Boolean> = _isForceOffline.asStateFlow()
-
-    fun toggleForceOffline() {
-        _isForceOffline.value = !_isForceOffline.value
-    }
-
     init {
         loadUserInfo()
         fallDetectionManager.startMonitoring()
@@ -370,7 +363,6 @@ class WearerViewModel @Inject constructor(
         _isVoiceSosActive,
         _isDeadManActive,
         _deadManSeconds,
-        _isForceOffline,
         _userInfo,
         _userPairingCode
     ) { args: Array<Any?> ->
@@ -382,10 +374,9 @@ class WearerViewModel @Inject constructor(
         val voiceSos = (args[4] as? Boolean) ?: false
         val deadMan = (args[5] as? Boolean) ?: false
         val dSecs = (args[6] as? Int) ?: 1800
-        val forceOffline = (args[7] as? Boolean) ?: false
         @Suppress("UNCHECKED_CAST")
-        val info = (args[8] as? Pair<String, String>) ?: Pair("Wearer User", "wearer@rakshalink.com")
-        val code = (args[9] as? String) ?: "RL-9842-WK"
+        val info = (args[7] as? Pair<String, String>) ?: Pair("Wearer User", "wearer@rakshalink.com")
+        val code = (args[8] as? String) ?: "RL-9842-WK"
 
         // Calculate dynamic Greeting
         val cal = Calendar.getInstance()
@@ -419,7 +410,7 @@ class WearerViewModel @Inject constructor(
             isProtected = score >= 50,
             safetyScore = score,
             isGpsActive = loc != null,
-            isNetworkActive = !forceOffline,
+            isNetworkActive = true,
             isPendantConnected = pConnection == PendantConnectionState.CONNECTED,
             batteryLevel = pBattery,
             phoneBatteryLevel = phoneBat,
