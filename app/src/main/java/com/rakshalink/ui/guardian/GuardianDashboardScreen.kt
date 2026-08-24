@@ -200,7 +200,7 @@ fun GuardianDashboardScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Watching ${wearers.size.coerceAtLeast(1)} person",
+                        text = "Watching ${wearers.size} ${if (wearers.size == 1) "person" else "people"}",
                         color = TextSecondary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
@@ -213,8 +213,8 @@ fun GuardianDashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "All safe",
-                        color = StatusSafe,
+                        text = if (wearers.isEmpty()) "No wearers linked" else "All safe",
+                        color = if (wearers.isEmpty()) TextSecondary else StatusSafe,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -222,13 +222,13 @@ fun GuardianDashboardScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(StatusSafe.copy(alpha = 0.15f))
-                            .border(1.dp, StatusSafe.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .background(if (wearers.isEmpty()) Color(0xFF1E293B) else StatusSafe.copy(alpha = 0.15f))
+                            .border(1.dp, if (wearers.isEmpty()) Color(0xFF334155) else StatusSafe.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "• LIVE",
-                            color = StatusSafe,
+                            text = if (wearers.isEmpty()) "• READY" else "• LIVE",
+                            color = if (wearers.isEmpty()) TextSecondary else StatusSafe,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -251,19 +251,38 @@ fun GuardianDashboardScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         if (wearers.isEmpty()) {
-            // Default Monitored Wearer Card matching screenshot
-            MonitoredWearerCard(
-                name = "Likhit Bhat",
-                relationship = "Son",
-                batteryLevel = 73,
-                status = "SAFE",
-                onClickManage = { }
-            )
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.People,
+                        contentDescription = "No wearers",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No monitored wearers connected yet",
+                        color = TextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "When a wearer invites you as their guardian, their status and location will appear here in real time.",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         } else {
             wearers.forEach { wearer ->
                 MonitoredWearerCard(
                     name = wearer.name,
-                    relationship = "Son",
+                    relationship = "Wearer",
                     batteryLevel = wearer.batteryLevel,
                     status = wearer.statusText.uppercase(),
                     onClickManage = { onNavigateToWearerDetail(wearer.id) }

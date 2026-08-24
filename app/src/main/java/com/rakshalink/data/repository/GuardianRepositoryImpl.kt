@@ -40,7 +40,7 @@ class GuardianRepositoryImpl @Inject constructor(
         val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
 
         suspend fun fetchWearers(): List<WearerModel> {
-            if (currentUserId.isEmpty()) return getFallbackWearers()
+            if (currentUserId.isEmpty()) return emptyList()
             return try {
                 val links = try {
                     supabaseProvider.db.from("wearer_guardian_links")
@@ -62,7 +62,7 @@ class GuardianRepositoryImpl @Inject constructor(
                     }
                 }
 
-                if (links.isEmpty()) return getFallbackWearers()
+                if (links.isEmpty()) return emptyList()
 
                 val wearers = mutableListOf<WearerModel>()
                 for (link in links) {
@@ -112,9 +112,9 @@ class GuardianRepositoryImpl @Inject constructor(
                     wearers.add(
                         WearerModel(
                             id = link.wearerId,
-                            name = profile?.fullName?.ifBlank { null } ?: profile?.email?.substringBefore("@") ?: "Likhit Bhat",
-                            email = profile?.email ?: "likhit@rakshalink.com",
-                            batteryLevel = device?.batteryLevel ?: 85,
+                            name = profile?.fullName?.ifBlank { null } ?: profile?.email?.substringBefore("@") ?: "Wearer",
+                            email = profile?.email ?: "",
+                            batteryLevel = device?.batteryLevel ?: 100,
                             isGpsActive = latestLoc != null || isRecent,
                             isPendantConnected = device?.isConnected ?: true,
                             lastLocation = latestLoc?.let {
@@ -126,20 +126,13 @@ class GuardianRepositoryImpl @Inject constructor(
                                     accuracy = it.accuracy,
                                     timestamp = parsedTimestamp
                                 )
-                            } ?: LocationModel(
-                                id = "loc_demo",
-                                userId = link.wearerId,
-                                latitude = 12.97544,
-                                longitude = 77.59337,
-                                accuracy = 5.0f,
-                                timestamp = System.currentTimeMillis()
-                            )
+                            }
                         )
                     )
                 }
-                wearers.ifEmpty { getFallbackWearers() }
+                wearers
             } catch (e: Exception) {
-                getFallbackWearers()
+                emptyList()
             }
         }
 
@@ -198,7 +191,7 @@ class GuardianRepositoryImpl @Inject constructor(
                     AlertModel(
                         id = alertDto.id,
                         wearerId = alertDto.wearerId,
-                        wearerName = "Likhit Bhat",
+                        wearerName = "Wearer",
                         type = try { AlertType.valueOf(alertDto.type) } catch (e: Exception) { AlertType.SOS },
                         title = alertDto.title,
                         message = alertDto.message,
@@ -209,9 +202,9 @@ class GuardianRepositoryImpl @Inject constructor(
                         isResolved = alertDto.isResolved
                     )
                 }
-                models.ifEmpty { getFallbackAlerts() }
+                models
             } catch (e: Exception) {
-                getFallbackAlerts()
+                emptyList()
             }
         }
 
@@ -246,45 +239,6 @@ class GuardianRepositoryImpl @Inject constructor(
 
     override suspend fun markAlertAsRead(alertId: String) {
         alertDao.markAsRead(alertId)
-    }
-
-    private fun getFallbackWearers(): List<WearerModel> {
-        return listOf(
-            WearerModel(
-                id = "w1",
-                name = "Likhit Bhat",
-                email = "likhit@rakshalink.com",
-                batteryLevel = 85,
-                isGpsActive = true,
-                isPendantConnected = true,
-                lastLocation = LocationModel(
-                    id = "loc1",
-                    userId = "w1",
-                    latitude = 12.97544,
-                    longitude = 77.59337,
-                    accuracy = 5f,
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        )
-    }
-
-    private fun getFallbackAlerts(): List<AlertModel> {
-        return listOf(
-            AlertModel(
-                id = "a1",
-                wearerId = "w1",
-                wearerName = "Likhit Bhat",
-                type = AlertType.SOS,
-                title = "Likhit Bhat · SOS Alert",
-                message = "Emergency SOS active",
-                latitude = 12.97544,
-                longitude = 77.59337,
-                timestamp = System.currentTimeMillis(),
-                isRead = false,
-                isResolved = false
-            )
-        )
     }
 
     private fun parseIsoTimestamp(isoString: String?): Long {
