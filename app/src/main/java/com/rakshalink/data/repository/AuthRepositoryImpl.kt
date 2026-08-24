@@ -70,7 +70,7 @@ class AuthRepositoryImpl @Inject constructor(
                 } catch (e: Exception) {
                     // Fallback if table insertion failed
                 }
-                userPreferencesManager.setUserRole(role.name.lowercase())
+                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = role.name.lowercase())
             }
             AuthResult.Success(Unit)
         } catch (e: Exception) {
@@ -96,7 +96,7 @@ class AuthRepositoryImpl @Inject constructor(
                 } catch (e: Exception) {
                     // Fallback to stored preference
                 }
-                userPreferencesManager.setUserRole(role.name.lowercase())
+                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = role.name.lowercase())
             }
             AuthResult.Success(role)
         } catch (e: Exception) {

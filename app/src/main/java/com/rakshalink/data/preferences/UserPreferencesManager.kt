@@ -42,6 +42,10 @@ class UserPreferencesManager @Inject constructor(
         prefs[KEY_USER_ROLE] ?: "wearer"
     }
 
+    val userIdFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_USER_ID] ?: ""
+    }
+
     val pushEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_PUSH_ENABLED] ?: true
     }

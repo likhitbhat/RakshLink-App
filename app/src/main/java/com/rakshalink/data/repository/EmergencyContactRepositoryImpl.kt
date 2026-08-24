@@ -13,6 +13,8 @@ import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import com.rakshalink.data.preferences.UserPreferencesManager
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -25,15 +27,24 @@ import javax.inject.Singleton
 @Singleton
 class EmergencyContactRepositoryImpl @Inject constructor(
     private val supabaseProvider: SupabaseClientProvider,
-    private val contactDao: EmergencyContactDao
+    private val contactDao: EmergencyContactDao,
+    private val userPreferencesManager: UserPreferencesManager
 ) : EmergencyContactRepository {
 
     companion object {
         private const val TAG = "RakshaOTP"
     }
 
+    private suspend fun resolveCurrentUserId(): String {
+        val supabaseUid = try { supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: "" } catch (e: Exception) { "" }
+        if (supabaseUid.isNotEmpty()) return supabaseUid
+        val storedUid = try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+        if (storedUid.isNotEmpty()) return storedUid
+        return ""
+    }
+
     override fun getEmergencyContacts(): Flow<List<EmergencyContactModel>> = channelFlow {
-        val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+        val userId = resolveCurrentUserId()
         Log.d(TAG, "[UI State Update] Starting getEmergencyContacts stream for userId: '$userId'")
 
         if (userId.isEmpty()) {
@@ -129,9 +140,9 @@ class EmergencyContactRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addContact(contact: EmergencyContactModel) {
-        val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+        val currentUserId = resolveCurrentUserId()
         val newId = if (contact.id.isEmpty()) UUID.randomUUID().toString() else contact.id
-        val resolvedUserId = if (contact.userId.isEmpty()) userId else contact.userId
+        val resolvedUserId = if (contact.userId.isEmpty()) currentUserId else contact.userId
 
         Log.d(TAG, "[Room Insert] Inserting contact to Room: id='$newId', name='${contact.name}', phone='${contact.phoneNumber}', isVerified=${contact.isVerified}")
         val roomEntity = EmergencyContactEntity(
