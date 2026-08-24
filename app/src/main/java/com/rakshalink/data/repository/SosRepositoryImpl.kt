@@ -5,6 +5,8 @@ import com.rakshalink.data.remote.dto.SosAttemptDto
 import com.rakshalink.data.remote.supabase.SupabaseClientProvider
 import com.rakshalink.domain.model.SosState
 import com.rakshalink.domain.repository.SosRepository
+import com.rakshalink.data.preferences.UserPreferencesManager
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -18,13 +20,22 @@ import javax.inject.Singleton
 
 @Singleton
 class SosRepositoryImpl @Inject constructor(
-    private val supabaseProvider: SupabaseClientProvider
+    private val supabaseProvider: SupabaseClientProvider,
+    private val userPreferencesManager: UserPreferencesManager
 ) : SosRepository {
 
     private val _sosState = MutableStateFlow<SosState>(SosState.Idle)
     override val sosState: StateFlow<SosState> = _sosState.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    private suspend fun resolveCurrentUserId(): String {
+        val supabaseUid = try { supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: "" } catch (e: Exception) { "" }
+        if (supabaseUid.isNotEmpty()) return supabaseUid
+        val storedUid = try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+        if (storedUid.isNotEmpty()) return storedUid
+        return ""
+    }
 
     override fun startPressing() {
         if (_sosState.value is SosState.Idle) {
@@ -48,7 +59,7 @@ class SosRepositoryImpl @Inject constructor(
 
     override suspend fun triggerActiveSos(latitude: Double?, longitude: Double?): String {
         val alertId = UUID.randomUUID().toString()
-        val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+        val userId = resolveCurrentUserId()
 
         _sosState.value = SosState.Active(alertId = alertId, timestampMs = System.currentTimeMillis())
 
@@ -71,7 +82,7 @@ class SosRepositoryImpl @Inject constructor(
     }
 
     override suspend fun resolveSos(alertId: String, wasFalseAlarm: Boolean) {
-        val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+        val userId = resolveCurrentUserId()
 
         try {
             if (alertId.isNotEmpty()) {

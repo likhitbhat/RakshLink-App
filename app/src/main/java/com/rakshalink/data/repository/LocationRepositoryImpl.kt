@@ -36,13 +36,18 @@ class LocationRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun resolveCurrentUserId(): String {
+        val supabaseUid = try { supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: "" } catch (e: Exception) { "" }
+        if (supabaseUid.isNotEmpty()) return supabaseUid
+        val storedUid = try { preferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+        if (storedUid.isNotEmpty()) return storedUid
+        return ""
+    }
+
     override suspend fun saveLocation(location: LocationModel) {
         val id = if (location.id.isEmpty()) UUID.randomUUID().toString() else location.id
-        val resolvedUserId = if (location.userId.isBlank()) {
-            supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
-        } else {
-            location.userId
-        }
+        val currentUserId = resolveCurrentUserId()
+        val resolvedUserId = if (location.userId.isBlank()) currentUserId else location.userId
         var isSynced = false
 
         val isShareLocationEnabled = try { preferencesManager.shareLocationEnabledFlow.first() } catch (e: Exception) { true }
