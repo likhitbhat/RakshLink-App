@@ -1,6 +1,7 @@
 package com.rakshalink.data.repository
 
 import com.rakshalink.data.preferences.UserPreferencesManager
+import com.rakshalink.data.remote.dto.UserProfileDto
 import com.rakshalink.data.remote.dto.UserRoleDto
 import com.rakshalink.data.remote.supabase.SupabaseClientProvider
 import com.rakshalink.domain.model.UserRole
@@ -64,13 +65,26 @@ class AuthRepositoryImpl @Inject constructor(
             }
             val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id
             if (userId != null) {
+                val roleStr = role.name.lowercase()
                 try {
-                    val roleDto = UserRoleDto(userId = userId, role = role.name.lowercase())
+                    val roleDto = UserRoleDto(userId = userId, role = roleStr)
                     supabaseProvider.db.from("user_roles").insert(roleDto)
                 } catch (e: Exception) {
                     // Fallback if table insertion failed
                 }
-                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = role.name.lowercase())
+                try {
+                    val profile = UserProfileDto(
+                        id = userId,
+                        email = email,
+                        full_name = email.substringBefore("@").split(".", "_", "-").joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } },
+                        role = roleStr,
+                        wearer_code = "RL-${userId.take(4).uppercase()}-WK"
+                    )
+                    supabaseProvider.db.from("users").upsert(profile)
+                } catch (e: Exception) {
+                    // Fallback if users table insertion failed
+                }
+                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
             }
             AuthResult.Success(Unit)
         } catch (e: Exception) {
@@ -96,7 +110,20 @@ class AuthRepositoryImpl @Inject constructor(
                 } catch (e: Exception) {
                     // Fallback to stored preference
                 }
-                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = role.name.lowercase())
+                val roleStr = role.name.lowercase()
+                try {
+                    val profile = UserProfileDto(
+                        id = userId,
+                        email = email,
+                        full_name = email.substringBefore("@").split(".", "_", "-").joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } },
+                        role = roleStr,
+                        wearer_code = "RL-${userId.take(4).uppercase()}-WK"
+                    )
+                    supabaseProvider.db.from("users").upsert(profile)
+                } catch (e: Exception) {
+                    // Fallback if users table insertion failed
+                }
+                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
             }
             AuthResult.Success(role)
         } catch (e: Exception) {

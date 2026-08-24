@@ -28,10 +28,11 @@ data class VerifyOtpResponse(
 
 @Serializable
 data class UserProfileDto(
-    val id: String,
-    val phone: String,
-    val full_name: String,
-    val role: String,
+    val id: String = "",
+    val email: String? = null,
+    val phone: String? = null,
+    val full_name: String = "",
+    val role: String = "wearer",
     val wearer_code: String? = null
 )
 
