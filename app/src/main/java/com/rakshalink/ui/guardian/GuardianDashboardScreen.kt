@@ -60,10 +60,11 @@ fun GuardianDashboardScreen(
 ) {
     val wearers by viewModel.linkedWearersState.collectAsState()
     val pendingInvites by viewModel.pendingInvitesState.collectAsState()
+    val guardianInfo by viewModel.guardianInfo.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    val guardianName = "Lakki Bhat"
-    val guardianId = "b2f46410-1136-42f8-9432-fca0e9ba5f47"
+    val guardianName = guardianInfo.first
+    val guardianId = guardianInfo.second
 
     Column(
         modifier = Modifier

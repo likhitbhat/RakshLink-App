@@ -451,7 +451,9 @@ class WearerViewModel @Inject constructor(
         _isDeadManActive,
         _deadManSeconds,
         _userInfo,
-        _userPairingCode
+        _userPairingCode,
+        guardiansList,
+        safetyEventHistory
     ) { args: Array<Any?> ->
         val loc = args[0] as? LocationModel
         val pBattery = (args[1] as? Int) ?: 78
@@ -464,6 +466,10 @@ class WearerViewModel @Inject constructor(
         @Suppress("UNCHECKED_CAST")
         val info = (args[7] as? Pair<String, String>) ?: Pair("Wearer User", "wearer@rakshalink.com")
         val code = (args[8] as? String) ?: "RL-9842-WK"
+        @Suppress("UNCHECKED_CAST")
+        val guardians = (args[9] as? List<GuardianModel>) ?: emptyList()
+        @Suppress("UNCHECKED_CAST")
+        val historyEvents = (args[10] as? List<HistoryEventItem>) ?: emptyList()
 
         // Calculate dynamic Greeting
         val cal = Calendar.getInstance()
@@ -489,6 +495,11 @@ class WearerViewModel @Inject constructor(
         if (phoneBat > 20) score += 25
         if (safeZones.isNotEmpty() && isInsideZone) score += 25 else if (loc != null) score += 10
 
+        val recentEvent = historyEvents.firstOrNull()
+        val recentTitle = recentEvent?.title ?: "System Safe"
+        val recentTime = recentEvent?.timeAgo ?: "No alerts recorded"
+        val recentStatus = if (recentEvent == null) "SAFE" else if (recentEvent.isEmergency) "ALERT" else "NORMAL"
+
         WearerDashboardUiState(
             userName = info.first,
             wearerEmail = info.second,
@@ -502,17 +513,17 @@ class WearerViewModel @Inject constructor(
             batteryLevel = pBattery,
             phoneBatteryLevel = phoneBat,
             isPhoneCharging = isCharging,
-            guardianCount = 2,
-            alertsThisMonth = 1,
+            guardianCount = guardians.size,
+            alertsThisMonth = historyEvents.count { it.isEmergency },
             isInsideSafeZone = isInsideZone,
             safeZoneStatusText = zoneStatus,
             isVoiceSosActive = voiceSos,
             isDeadManActive = deadMan,
             deadManRemainingSeconds = dSecs,
             lastLocation = loc,
-            recentActivityTitle = "Sos Alert",
-            recentActivityTime = "8/11/2026, 1:44:59 PM",
-            recentActivityStatus = "CANCELLED",
+            recentActivityTitle = recentTitle,
+            recentActivityTime = recentTime,
+            recentActivityStatus = recentStatus,
             isLoading = false
         )
     }.stateIn(
