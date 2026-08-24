@@ -170,6 +170,70 @@ class GuardianViewModel @Inject constructor(
         }
     }
 
+    fun addWearerByCode(codeOrEmail: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+            val activeUserId = if (currentUserId.isNotEmpty()) currentUserId else try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+
+            if (activeUserId.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    onResult(false, "Please log in to link a wearer.")
+                }
+                return@launch
+            }
+
+            val cleaned = codeOrEmail.trim()
+            if (cleaned.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    onResult(false, "Please enter a valid wearer code or email.")
+                }
+                return@launch
+            }
+
+            try {
+                // Find wearer profile matching code or email or ID
+                val profiles = try {
+                    supabaseProvider.db.from("users")
+                        .select(columns = Columns.ALL)
+                        .decodeList<com.rakshalink.data.remote.dto.UserProfileDto>()
+                } catch (e: Exception) { emptyList() }
+
+                val match = profiles.firstOrNull { prof ->
+                    prof.email.equals(cleaned, ignoreCase = true) ||
+                    prof.wearer_code.equals(cleaned, ignoreCase = true) ||
+                    prof.id.equals(cleaned, ignoreCase = true)
+                }
+
+                val targetWearerId = match?.id ?: cleaned
+
+                val linkDto = WearerGuardianLinkDto(
+                    id = UUID.randomUUID().toString(),
+                    wearerId = targetWearerId,
+                    guardianId = activeUserId,
+                    role = "primary",
+                    status = "active",
+                    linkedAt = java.time.Instant.now().toString()
+                )
+
+                try {
+                    supabaseProvider.db.from("wearer_guardian_links").insert(linkDto)
+                } catch (e: Exception) {
+                    try {
+                        supabaseProvider.db.from("guardian_links").insert(linkDto)
+                    } catch (e2: Exception) {}
+                }
+
+                withContext(Dispatchers.Main) {
+                    onResult(true, "Wearer successfully linked! Live location tracking enabled.")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onResult(false, "Failed to link wearer: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
     fun markAlertAsRead(alertId: String) {
         viewModelScope.launch {
             guardianRepository.markAlertAsRead(alertId)

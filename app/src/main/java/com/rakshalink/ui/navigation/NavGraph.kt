@@ -347,7 +347,8 @@ fun RakshaNavGraph(
                     onNavigateToWearerDetail = { wearerId ->
                         navController.navigate(Screen.WearerDetail.createRoute(wearerId))
                     },
-                    onNavigateToMap = { navController.navigate(Screen.GuardianLiveMap.route) }
+                    onNavigateToMap = { navController.navigate(Screen.GuardianLiveMap.route) },
+                    onNavigateToAlerts = { navController.navigate(Screen.AlertInbox.route) }
                 )
             }
 

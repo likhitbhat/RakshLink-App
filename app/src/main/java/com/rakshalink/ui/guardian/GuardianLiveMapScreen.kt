@@ -105,17 +105,13 @@ fun GuardianLiveMapScreen(
                         )
                     }
                 }
-                if (wearers.isEmpty()) {
-                    Marker(
-                        state = MarkerState(position = LatLng(12.973, 77.599)),
-                        title = "Likhit Bhat",
-                        snippet = "Safe"
-                    )
-                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        val activeWearer = wearers.firstOrNull()
+        val locStr = activeWearer?.lastLocation?.let { "${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)}" } ?: "No GPS fix"
 
         // Wearer Bottom Card
         GlassCard(
@@ -131,11 +127,11 @@ fun GuardianLiveMapScreen(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(StatusSafe)
+                        .background(if (activeWearer != null) StatusSafe else Color.Gray)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = wearers.firstOrNull()?.name ?: "Likhit Bhat",
+                    text = activeWearer?.name ?: "No Wearers Linked",
                     color = TextPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -144,7 +140,7 @@ fun GuardianLiveMapScreen(
                 Spacer(modifier = Modifier.weight(1f))
 
                 Text(
-                    text = "12.973, 77.599",
+                    text = locStr,
                     color = TextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium

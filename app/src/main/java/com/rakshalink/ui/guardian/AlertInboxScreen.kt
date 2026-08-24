@@ -105,27 +105,47 @@ fun AlertInboxScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         if (alerts.isEmpty()) {
-            // Default sample items matching screenshot
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                item { AlertCardItem("Likhit Bhat · Sos", "8/11/2026, 1:44:59 PM", "12.9919, 75.3403", "CANCELLED") }
-                item { AlertCardItem("Likhit Bhat · Sos", "6/2/2026, 7:22:53 PM", "12.9919, 75.3403", "CANCELLED") }
-                item { AlertCardItem("Likhit Bhat · Sos", "5/29/2026, 7:17:52 PM", "12.9919, 75.3403", "CANCELLED") }
-                item { AlertCardItem("Likhit Bhat · Sos", "5/29/2026, 7:17:52 PM", "12.9919, 75.3403", "CANCELLED") }
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "No alerts",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "No emergency alerts recorded",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Real-time emergency alerts from your protected wearers will appear here instantly.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             }
         } else {
+            val sdf = java.text.SimpleDateFormat("M/d/yyyy, h:mm:ss a", java.util.Locale.US)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(alerts) { alert ->
+                    val formattedTime = sdf.format(java.util.Date(alert.timestamp))
+                    val locStr = "${String.format("%.4f", alert.latitude)}, ${String.format("%.4f", alert.longitude)}"
                     AlertCardItem(
-                        title = "${alert.title} · ${alert.type.name}",
-                        timestamp = "8/11/2026, 1:44:59 PM",
-                        location = "12.9919, 75.3403",
-                        status = if (!alert.isRead) "ACTIVE" else "CANCELLED"
+                        title = alert.title.ifBlank { "${alert.wearerName} · ${alert.type.name}" },
+                        timestamp = formattedTime,
+                        location = locStr,
+                        status = if (alert.isResolved) "RESOLVED" else "ACTIVE"
                     )
                 }
             }

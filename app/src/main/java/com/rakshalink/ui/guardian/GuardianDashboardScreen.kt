@@ -35,6 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +59,8 @@ import com.rakshalink.ui.theme.TextSecondary
 fun GuardianDashboardScreen(
     viewModel: GuardianViewModel,
     onNavigateToWearerDetail: (String) -> Unit,
-    onNavigateToMap: () -> Unit
+    onNavigateToMap: () -> Unit,
+    onNavigateToAlerts: () -> Unit = {}
 ) {
     val wearers by viewModel.linkedWearersState.collectAsState()
     val pendingInvites by viewModel.pendingInvitesState.collectAsState()
@@ -65,6 +69,10 @@ fun GuardianDashboardScreen(
 
     val guardianName = guardianInfo.first
     val guardianId = guardianInfo.second
+
+    var showAddWearerModal by remember { mutableStateOf(false) }
+    var wearerCodeInput by remember { mutableStateOf("") }
+    var isLinking by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -104,7 +112,7 @@ fun GuardianDashboardScreen(
                     .size(42.dp)
                     .clip(CircleShape)
                     .background(CyanAccent)
-                    .clickable { },
+                    .clickable { showAddWearerModal = true },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -321,7 +329,7 @@ fun GuardianDashboardScreen(
                 icon = Icons.Default.Notifications,
                 title = "Alerts feed",
                 iconTint = Color(0xFFFF5252),
-                onClick = { },
+                onClick = onNavigateToAlerts,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -338,6 +346,74 @@ fun GuardianDashboardScreen(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
         )
+    }
+
+    if (showAddWearerModal) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showAddWearerModal = false }) {
+            GlassCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "LINK MONITORED WEARER",
+                        color = CyanAccent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Enter the Wearer's Pairing Code (e.g., RL-A4B8-WK) or Email address to start tracking live location.",
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = wearerCodeInput,
+                        onValueChange = { wearerCodeInput = it },
+                        label = { Text("Wearer Code or Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = CyanAccent,
+                            unfocusedBorderColor = Color(0xFF334155),
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                if (wearerCodeInput.isBlank()) return@Button
+                                isLinking = true
+                                viewModel.addWearerByCode(wearerCodeInput) { success, msg ->
+                                    isLinking = false
+                                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                                    if (success) {
+                                        showAddWearerModal = false
+                                        wearerCodeInput = ""
+                                    }
+                                }
+                            },
+                            enabled = !isLinking,
+                            colors = ButtonDefaults.buttonColors(containerColor = CyanAccent),
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(if (isLinking) "Linking..." else "Link Wearer", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showAddWearerModal = false },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
