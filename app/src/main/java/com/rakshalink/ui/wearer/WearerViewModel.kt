@@ -32,11 +32,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import com.rakshalink.data.remote.dto.EmergencyAlertDto
+import com.rakshalink.data.remote.dto.ZoneEventDto
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.Dispatchers
+import java.util.UUID
 
 data class GuardianModel(
     val id: String,
@@ -348,11 +353,93 @@ class WearerViewModel @Inject constructor(
 
     private var deadManJob: Job? = null
 
+    private val _safetyEventHistory = MutableStateFlow<List<HistoryEventItem>>(emptyList())
+    val safetyEventHistory: StateFlow<List<HistoryEventItem>> = _safetyEventHistory.asStateFlow()
+
+    private suspend fun resolveCurrentUserId(): String {
+        val supabaseUid = try { supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: "" } catch (e: Exception) { "" }
+        if (supabaseUid.isNotEmpty()) return supabaseUid
+        val storedUid = try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+        if (storedUid.isNotEmpty()) return storedUid
+        return ""
+    }
+
+    private fun listenToSafetyHistory() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentUserId = resolveCurrentUserId()
+            if (currentUserId.isEmpty()) return@launch
+
+            suspend fun fetchEvents(): List<HistoryEventItem> {
+                val items = mutableListOf<HistoryEventItem>()
+                try {
+                    val alerts = supabaseProvider.db.from("emergency_alerts")
+                        .select(columns = Columns.ALL) {
+                            filter { eq("wearer_id", currentUserId) }
+                        }.decodeList<EmergencyAlertDto>()
+
+                    alerts.forEach { alert ->
+                        items.add(
+                            HistoryEventItem(
+                                id = alert.id,
+                                title = if (alert.title.isNotEmpty()) alert.title else "EMERGENCY SOS ALERT",
+                                description = if (alert.message.isNotEmpty()) alert.message else "Emergency alert triggered",
+                                timeAgo = if (alert.createdAt.isNotEmpty()) alert.createdAt else "Recently",
+                                isEmergency = true
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    // Fallback
+                }
+
+                try {
+                    val zoneEvs = supabaseProvider.db.from("zone_events")
+                        .select(columns = Columns.ALL) {
+                            filter { eq("user_id", currentUserId) }
+                        }.decodeList<ZoneEventDto>()
+
+                    zoneEvs.forEach { ze ->
+                        val isEnter = ze.eventType.equals("enter", ignoreCase = true)
+                        items.add(
+                            HistoryEventItem(
+                                id = if (ze.id.isNotEmpty()) ze.id else UUID.randomUUID().toString(),
+                                title = if (isEnter) "Safe Zone Entry" else "Safe Zone Exit",
+                                description = if (isEnter) "Entered designated safe zone" else "Exited designated safe zone",
+                                timeAgo = if (ze.createdAt.isNotEmpty()) ze.createdAt else "Recently",
+                                isEmergency = false
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    // Fallback
+                }
+
+                return items.sortedByDescending { it.id }
+            }
+
+            _safetyEventHistory.value = fetchEvents()
+
+            try {
+                val alertsChannel = supabaseProvider.client.realtime.channel("realtime-history-$currentUserId")
+                val changeFlow = alertsChannel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "emergency_alerts"
+                }
+                alertsChannel.subscribe()
+                changeFlow.collect {
+                    _safetyEventHistory.value = fetchEvents()
+                }
+            } catch (e: Exception) {
+                // Realtime fallback
+            }
+        }
+    }
+
     init {
         loadUserInfo()
         fallDetectionManager.startMonitoring()
         listenToRealtimeGuardians()
         listenToEmergencyContacts()
+        listenToSafetyHistory()
     }
 
     val dashboardUiState: StateFlow<WearerDashboardUiState> = combine(

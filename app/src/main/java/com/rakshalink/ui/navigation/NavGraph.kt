@@ -319,6 +319,7 @@ fun RakshaNavGraph(
 
             composable(Screen.History.route) {
                 HistoryScreen(
+                    viewModel = wearerViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
             }

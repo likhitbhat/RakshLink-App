@@ -30,6 +30,12 @@ import com.rakshalink.ui.theme.PrimaryRed
 import com.rakshalink.ui.theme.TextPrimary
 import com.rakshalink.ui.theme.TextSecondary
 
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+
 data class HistoryEventItem(
     val id: String,
     val title: String,
@@ -40,14 +46,10 @@ data class HistoryEventItem(
 
 @Composable
 fun HistoryScreen(
+    viewModel: WearerViewModel = hiltViewModel(),
     onBackClick: () -> Unit
 ) {
-    val historyItems = listOf(
-        HistoryEventItem("1", "EMERGENCY SOS ALERT", "SOS button triggered near MG Road", "2 hours ago", true),
-        HistoryEventItem("2", "Safe Zone Exit", "Exited Home Safe Zone", "5 hours ago", false),
-        HistoryEventItem("3", "Safe Zone Entry", "Entered College Safe Zone", "6 hours ago", false),
-        HistoryEventItem("4", "BLE Pendant Connected", "Hardware pendant synced via Bluetooth LE", "1 day ago", false)
-    )
+    val historyItems by viewModel.safetyEventHistory.collectAsState()
 
     Column(
         modifier = Modifier
@@ -56,32 +58,64 @@ fun HistoryScreen(
     ) {
         RakshaTopBar(title = "Safety Event History", onBackClick = onBackClick)
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            items(historyItems) { item ->
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+        if (historyItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "No Events",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "No safety events recorded yet",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Emergency SOS alerts and safe zone events will appear here in real time.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                items(historyItems) { item ->
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
                     ) {
-                        Icon(
-                            imageVector = if (item.isEmergency) Icons.Default.Warning else Icons.Default.History,
-                            contentDescription = item.title,
-                            tint = if (item.isEmergency) PrimaryRed else CyanAccent
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(item.title, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                            Text(item.description, color = TextSecondary, fontSize = 13.sp)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(item.timeAgo, color = TextSecondary, fontSize = 11.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (item.isEmergency) Icons.Default.Warning else Icons.Default.History,
+                                contentDescription = item.title,
+                                tint = if (item.isEmergency) PrimaryRed else CyanAccent
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.title, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                Text(item.description, color = TextSecondary, fontSize = 13.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(item.timeAgo, color = TextSecondary, fontSize = 11.sp)
+                            }
                         }
                     }
                 }
