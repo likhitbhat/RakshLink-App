@@ -282,10 +282,10 @@ class WearerViewModel @Inject constructor(
     val sosState: StateFlow<SosState> = sosRepository.sosState
 
     val locationState: StateFlow<LocationModel?> = locationRepository.getLatestLocation()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val safeZonesState: StateFlow<List<SafeZoneModel>> = safeZoneRepository.getActiveSafeZones()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
 
 
@@ -388,8 +388,8 @@ class WearerViewModel @Inject constructor(
         )
     }.stateIn(
         viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        WearerDashboardUiState(isLoading = true)
+        SharingStarted.Eagerly,
+        WearerDashboardUiState(isLoading = false)
     )
 
     private fun getPhoneBatteryInfo(): Pair<Int, Boolean> {

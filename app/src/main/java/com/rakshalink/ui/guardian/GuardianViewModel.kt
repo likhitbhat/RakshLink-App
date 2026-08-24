@@ -31,10 +31,10 @@ class GuardianViewModel @Inject constructor(
 ) : ViewModel() {
 
     val linkedWearersState: StateFlow<List<WearerModel>> = guardianRepository.getLinkedWearers()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val alertInboxState: StateFlow<List<AlertModel>> = guardianRepository.getAlertInbox()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _pendingInvitesState = MutableStateFlow<List<GuardianInviteDto>>(emptyList())
     val pendingInvitesState: StateFlow<List<GuardianInviteDto>> = _pendingInvitesState.asStateFlow()
