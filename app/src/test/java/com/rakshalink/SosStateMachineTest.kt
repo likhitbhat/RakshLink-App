@@ -1,5 +1,6 @@
 package com.rakshalink
 
+import com.rakshalink.data.preferences.UserPreferencesManager
 import com.rakshalink.data.remote.supabase.SupabaseClientProvider
 import com.rakshalink.data.repository.SosRepositoryImpl
 import com.rakshalink.domain.model.SosState
@@ -16,10 +17,11 @@ class SosStateMachineTest {
 
     private lateinit var repository: SosRepositoryImpl
     private val supabaseProvider: SupabaseClientProvider = mockk(relaxed = true)
+    private val userPreferencesManager: UserPreferencesManager = mockk(relaxed = true)
 
     @Before
     fun setup() {
-        repository = SosRepositoryImpl(supabaseProvider)
+        repository = SosRepositoryImpl(supabaseProvider, userPreferencesManager)
     }
 
     @Test
