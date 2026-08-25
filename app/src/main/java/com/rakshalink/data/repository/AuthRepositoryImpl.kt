@@ -106,22 +106,41 @@ class AuthRepositoryImpl @Inject constructor(
                         .select(columns = Columns.ALL) {
                             filter { eq("user_id", userId) }
                         }.decodeSingleOrNull<UserRoleDto>()
-                    role = UserRole.fromString(roleDto?.role)
+                    if (roleDto != null) {
+                        role = UserRole.fromString(roleDto.role)
+                    }
                 } catch (e: Exception) {
-                    // Fallback to stored preference
+                    // Fallback
                 }
                 val roleStr = role.name.lowercase()
+
+                // Fetch existing profile to preserve custom full_name if present
+                val existingProfile = try {
+                    supabaseProvider.db.from("users")
+                        .select(columns = Columns.ALL) {
+                            filter { eq("id", userId) }
+                        }.decodeSingleOrNull<UserProfileDto>()
+                } catch (e: Exception) { null }
+
+                val resolvedName = when {
+                    !existingProfile?.full_name.isNullOrBlank() -> existingProfile!!.full_name
+                    email.contains("@") -> email.substringBefore("@")
+                        .split(".", "_", "-")
+                        .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
+                    else -> email
+                }
+
                 try {
                     val profile = UserProfileDto(
                         id = userId,
                         email = email,
-                        full_name = email.substringBefore("@").split(".", "_", "-").joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } },
+                        full_name = resolvedName,
                         role = roleStr,
-                        wearer_code = "RL-${userId.take(4).uppercase()}-WK"
+                        wearer_code = existingProfile?.wearer_code ?: "RL-${userId.take(4).uppercase()}-WK"
                     )
                     supabaseProvider.db.from("users").upsert(profile)
                 } catch (e: Exception) {
-                    // Fallback if users table insertion failed
+                    // Fallback
                 }
                 userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
             }
@@ -134,10 +153,13 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signOut(): AuthResult<Unit> {
         return try {
             supabaseProvider.auth.signOut()
+            userPreferencesManager.clearAuthSession()
             userPreferencesManager.setUserRole("wearer")
             AuthResult.Success(Unit)
         } catch (e: Exception) {
-            AuthResult.Error(e.localizedMessage ?: "Sign out failed")
+            try { userPreferencesManager.clearAuthSession() } catch (e2: Exception) {}
+            userPreferencesManager.setUserRole("wearer")
+            AuthResult.Success(Unit)
         }
     }
 

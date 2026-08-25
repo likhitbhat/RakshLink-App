@@ -93,6 +93,9 @@ class AuthViewModel @Inject constructor(
     }
 
     fun resetState() {
-        _uiState.value = AuthUiState.Idle
+        viewModelScope.launch {
+            authRepository.signOut()
+            _uiState.value = AuthUiState.Idle
+        }
     }
 }
