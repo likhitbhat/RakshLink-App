@@ -56,25 +56,34 @@ class GuardianViewModel @Inject constructor(
             val supabaseEmail = supabaseUser?.email ?: ""
             val supabasePhone = supabaseUser?.phone ?: ""
             val storedEmailOrPhone = try { userPreferencesManager.userPhoneOrEmailFlow.first() } catch (e: Exception) { "" }
+            val storedUserId = try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+            val activeUid = if (supabaseUser?.id?.isNotEmpty() == true) supabaseUser.id else storedUserId
 
-            val activeEmail = when {
+            // Query Supabase for authentic guardian profile
+            val dbProfile = if (activeUid.isNotEmpty()) {
+                try {
+                    supabaseProvider.db.from("users")
+                        .select(columns = Columns.ALL) { filter { eq("id", activeUid) } }
+                        .decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
+                } catch (e: Exception) { null }
+            } else null
+
+            val realEmail = when {
+                !dbProfile?.email.isNullOrBlank() -> dbProfile!!.email
                 supabaseEmail.isNotEmpty() -> supabaseEmail
-                storedEmailOrPhone.isNotEmpty() -> storedEmailOrPhone
-                supabasePhone.isNotEmpty() -> supabasePhone
-                else -> "guardian@rakshalink.com"
+                storedEmailOrPhone.contains("@") -> storedEmailOrPhone
+                else -> if (supabasePhone.isNotEmpty()) supabasePhone else storedEmailOrPhone.ifBlank { "Guardian Account" }
             }
 
-            val rawName = if (activeEmail.contains("@")) {
-                activeEmail.substringBefore("@")
+            val rawName = when {
+                !dbProfile?.full_name.isNullOrBlank() -> dbProfile!!.full_name
+                realEmail.contains("@") -> realEmail.substringBefore("@")
                     .split(".", "_", "-")
                     .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
-            } else if (activeEmail.isNotEmpty()) {
-                activeEmail
-            } else {
-                "Guardian User"
+                else -> realEmail
             }
 
-            _guardianInfo.value = Pair(rawName, activeEmail)
+            _guardianInfo.value = Pair(rawName, realEmail)
         }
     }
 

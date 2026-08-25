@@ -41,6 +41,8 @@ fun WearerDetailScreen(
     val wearers by viewModel.linkedWearersState.collectAsState()
     val wearer = wearers.find { it.id == wearerId } ?: wearers.firstOrNull()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -58,8 +60,8 @@ fun WearerDetailScreen(
                     Icon(Icons.Default.Person, contentDescription = "Wearer", tint = CyanAccent)
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text(wearer?.name ?: "Priya Sharma", color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text(wearer?.email ?: "priya@example.com", color = TextSecondary, fontSize = 14.sp)
+                        Text(wearer?.name ?: "Monitored Wearer", color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(wearer?.email ?: "Active Protected Profile", color = TextSecondary, fontSize = 14.sp)
                     }
                 }
             }
@@ -85,18 +87,33 @@ fun WearerDetailScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text("Hardware Pendant Battery", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text("${wearer?.batteryLevel ?: 88}% Charged", color = TextSecondary, fontSize = 13.sp)
+                        Text("${wearer?.batteryLevel ?: 100}% Charged", color = TextSecondary, fontSize = 13.sp)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            GlassButton(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth()
+            androidx.compose.material3.OutlinedButton(
+                onClick = {
+                    wearer?.let {
+                        viewModel.removeWearer(it.id) { success, msg ->
+                            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                            if (success) onBackClick()
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.rakshalink.ui.theme.PrimaryRed.copy(alpha = 0.5f)),
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                    containerColor = com.rakshalink.ui.theme.PrimaryRed.copy(alpha = 0.1f),
+                    contentColor = com.rakshalink.ui.theme.PrimaryRed
+                )
             ) {
-                Text("Request Immediate Location Ping")
+                Text("Unlink & Remove Wearer", color = com.rakshalink.ui.theme.PrimaryRed, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -381,6 +381,9 @@ fun RakshaNavGraph(
             composable(Screen.GuardianSettings.route) {
                 GuardianSettingsScreen(
                     viewModel = guardianViewModel,
+                    onNavigateToWearerDetail = { wearerId ->
+                        navController.navigate(Screen.WearerDetail.createRoute(wearerId))
+                    },
                     onNavigateToMap = { navController.navigate(Screen.GuardianLiveMap.route) },
                     onNavigateToAlerts = { navController.navigate(Screen.AlertInbox.route) },
                     onSignOutClick = {

@@ -69,6 +69,7 @@ import androidx.compose.runtime.collectAsState
 @Composable
 fun GuardianSettingsScreen(
     viewModel: GuardianViewModel = hiltViewModel(),
+    onNavigateToWearerDetail: (String) -> Unit = {},
     onNavigateToMap: () -> Unit = {},
     onNavigateToAlerts: () -> Unit = {},
     onSignOutClick: () -> Unit,
@@ -145,7 +146,12 @@ fun GuardianSettingsScreen(
             }
         } else {
             linkedWearers.forEach { wearer ->
-                GlassCard(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clickable { onNavigateToWearerDetail(wearer.id) }
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -191,7 +197,18 @@ fun GuardianSettingsScreen(
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column {
-                SettingsNavigationRow(icon = Icons.Default.People, title = "Watched wearers", onClick = onBackClick)
+                SettingsNavigationRow(
+                    icon = Icons.Default.People,
+                    title = "Watched wearers",
+                    onClick = {
+                        val activeId = linkedWearers.firstOrNull()?.id ?: ""
+                        if (activeId.isNotEmpty()) {
+                            onNavigateToWearerDetail(activeId)
+                        } else {
+                            onBackClick()
+                        }
+                    }
+                )
                 HorizontalDivider(color = Color(0xFF1E293B))
                 SettingsNavigationRow(icon = Icons.Default.LocationOn, title = "Live map", onClick = onNavigateToMap)
                 HorizontalDivider(color = Color(0xFF1E293B))
