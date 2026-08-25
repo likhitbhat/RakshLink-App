@@ -59,6 +59,24 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signUp(email: String, password: String, role: UserRole): AuthResult<Unit> {
         return try {
+            // Security check: Check if email is already registered as a different role
+            val existingProfile = try {
+                supabaseProvider.db.from("users")
+                    .select(columns = Columns.ALL) {
+                        filter { eq("email", email) }
+                        limit(1)
+                    }.decodeSingleOrNull<UserProfileDto>()
+            } catch (e: Exception) { null }
+
+            if (existingProfile != null) {
+                val registeredRole = UserRole.fromString(existingProfile.role)
+                if (registeredRole != role) {
+                    return AuthResult.Error(
+                        "Security Violation: This email (${email}) is registered as a ${registeredRole.name.uppercase()} account. You cannot sign up as a ${role.name.uppercase()} using the same email."
+                    )
+                }
+            }
+
             supabaseProvider.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
@@ -69,9 +87,8 @@ class AuthRepositoryImpl @Inject constructor(
                 try {
                     val roleDto = UserRoleDto(userId = userId, role = roleStr)
                     supabaseProvider.db.from("user_roles").insert(roleDto)
-                } catch (e: Exception) {
-                    // Fallback if table insertion failed
-                }
+                } catch (e: Exception) {}
+
                 try {
                     val profile = UserProfileDto(
                         id = userId,
@@ -81,9 +98,7 @@ class AuthRepositoryImpl @Inject constructor(
                         wearer_code = "RL-${userId.take(4).uppercase()}-WK"
                     )
                     supabaseProvider.db.from("users").upsert(profile)
-                } catch (e: Exception) {
-                    // Fallback if users table insertion failed
-                }
+                } catch (e: Exception) {}
                 userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
             }
             AuthResult.Success(Unit)
@@ -92,7 +107,7 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signIn(email: String, password: String): AuthResult<UserRole> {
+    override suspend fun signIn(email: String, password: String, expectedRole: UserRole?): AuthResult<UserRole> {
         return try {
             supabaseProvider.auth.signInWith(Email) {
                 this.email = email
@@ -100,28 +115,40 @@ class AuthRepositoryImpl @Inject constructor(
             }
             val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id
             var role = UserRole.WEARER
-            if (userId != null) {
-                try {
-                    val roleDto = supabaseProvider.db.from("user_roles")
-                        .select(columns = Columns.ALL) {
-                            filter { eq("user_id", userId) }
-                        }.decodeSingleOrNull<UserRoleDto>()
-                    if (roleDto != null) {
-                        role = UserRole.fromString(roleDto.role)
-                    }
-                } catch (e: Exception) {
-                    // Fallback
-                }
-                val roleStr = role.name.lowercase()
 
-                // Fetch existing profile to preserve custom full_name if present
+            if (userId != null) {
+                // Fetch existing profile to determine registered role
                 val existingProfile = try {
                     supabaseProvider.db.from("users")
                         .select(columns = Columns.ALL) {
                             filter { eq("id", userId) }
+                            limit(1)
                         }.decodeSingleOrNull<UserProfileDto>()
                 } catch (e: Exception) { null }
 
+                val registeredRoleStr = existingProfile?.role ?: try {
+                    val roleDto = supabaseProvider.db.from("user_roles")
+                        .select(columns = Columns.ALL) {
+                            filter { eq("user_id", userId) }
+                        }.decodeSingleOrNull<UserRoleDto>()
+                    roleDto?.role
+                } catch (e: Exception) { null }
+
+                if (registeredRoleStr != null) {
+                    role = UserRole.fromString(registeredRoleStr)
+                }
+
+                // STRICT SECURITY ROLE LOCK ENFORCEMENT
+                if (expectedRole != null && role != expectedRole) {
+                    // Sign out immediately to protect user session
+                    supabaseProvider.auth.signOut()
+                    userPreferencesManager.clearAuthSession()
+                    return AuthResult.Error(
+                        "Security Violation: This email (${email}) is registered as a ${role.name.uppercase()} account. You cannot log in as a ${expectedRole.name.uppercase()} using this email."
+                    )
+                }
+
+                val roleStr = role.name.lowercase()
                 val resolvedName = when {
                     !existingProfile?.full_name.isNullOrBlank() -> existingProfile!!.full_name
                     email.contains("@") -> email.substringBefore("@")
@@ -139,9 +166,8 @@ class AuthRepositoryImpl @Inject constructor(
                         wearer_code = existingProfile?.wearer_code ?: "RL-${userId.take(4).uppercase()}-WK"
                     )
                     supabaseProvider.db.from("users").upsert(profile)
-                } catch (e: Exception) {
-                    // Fallback
-                }
+                } catch (e: Exception) {}
+
                 userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
             }
             AuthResult.Success(role)

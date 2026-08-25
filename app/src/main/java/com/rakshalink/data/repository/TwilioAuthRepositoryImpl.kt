@@ -28,6 +28,32 @@ class TwilioAuthRepositoryImpl @Inject constructor(
         val response = twilioAuthApi.verifyOtp(phone, otp)
         if (response.verified) {
             val userId = UUID.nameUUIDFromBytes(phone.toByteArray()).toString()
+
+            // Security check: Check if phone is already registered as a different role
+            val existingProfile = try {
+                supabaseProvider.db.from("users")
+                    .select(columns = Columns.ALL) {
+                        filter {
+                            or {
+                                eq("id", userId)
+                                eq("phone", phone)
+                            }
+                        }
+                        limit(1)
+                    }.decodeSingleOrNull<UserProfileDto>()
+            } catch (e: Exception) { null }
+
+            if (existingProfile != null) {
+                val registeredRole = UserRole.fromString(existingProfile.role)
+                if (registeredRole != role) {
+                    return VerifyOtpResponse(
+                        success = false,
+                        verified = false,
+                        message = "Security Error: Phone $phone is registered as a ${registeredRole.name.uppercase()} account. You cannot log in as a ${role.name.uppercase()}."
+                    )
+                }
+            }
+
             val randomDigits = (1000..9999).random()
             val wearerCode = "RL-$randomDigits-WK"
             val roleStr = role.name.lowercase()
@@ -49,9 +75,7 @@ class TwilioAuthRepositoryImpl @Inject constructor(
                     wearer_code = wearerCode
                 )
                 supabaseProvider.db.from("users").upsert(profile)
-            } catch (e: Exception) {
-                // If Supabase network insert fails (e.g. offline/placeholder credentials), local session persists cleanly
-            }
+            } catch (e: Exception) {}
         }
         return response
     }
