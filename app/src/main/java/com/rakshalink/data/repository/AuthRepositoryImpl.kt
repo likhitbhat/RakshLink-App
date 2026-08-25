@@ -84,6 +84,9 @@ class AuthRepositoryImpl @Inject constructor(
             val userId = supabaseProvider.auth.currentSessionOrNull()?.user?.id
             if (userId != null) {
                 val roleStr = role.name.lowercase()
+                val sessionToken = java.util.UUID.randomUUID().toString()
+                val permanentCode = com.rakshalink.data.remote.dto.generatePermanentWearerCode(email)
+
                 try {
                     val roleDto = UserRoleDto(userId = userId, role = roleStr)
                     supabaseProvider.db.from("user_roles").insert(roleDto)
@@ -95,11 +98,12 @@ class AuthRepositoryImpl @Inject constructor(
                         email = email,
                         full_name = email.substringBefore("@").split(".", "_", "-").joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } },
                         role = roleStr,
-                        wearer_code = "RL-${userId.take(4).uppercase()}-WK"
+                        wearer_code = permanentCode,
+                        session_device_token = sessionToken
                     )
                     supabaseProvider.db.from("users").upsert(profile)
                 } catch (e: Exception) {}
-                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
+                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr, sessionToken = sessionToken)
             }
             AuthResult.Success(Unit)
         } catch (e: Exception) {
@@ -157,18 +161,26 @@ class AuthRepositoryImpl @Inject constructor(
                     else -> email
                 }
 
+                // Generate new single-device session token on every login
+                val sessionToken = java.util.UUID.randomUUID().toString()
+                val permanentCode = when {
+                    !existingProfile?.wearer_code.isNullOrBlank() -> existingProfile!!.wearer_code!!
+                    else -> com.rakshalink.data.remote.dto.generatePermanentWearerCode(email)
+                }
+
                 try {
                     val profile = UserProfileDto(
                         id = userId,
                         email = email,
                         full_name = resolvedName,
                         role = roleStr,
-                        wearer_code = existingProfile?.wearer_code ?: "RL-${userId.take(4).uppercase()}-WK"
+                        wearer_code = permanentCode,
+                        session_device_token = sessionToken
                     )
                     supabaseProvider.db.from("users").upsert(profile)
                 } catch (e: Exception) {}
 
-                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr)
+                userPreferencesManager.saveAuthSession(userId = userId, phone = email, role = roleStr, sessionToken = sessionToken)
             }
             AuthResult.Success(role)
         } catch (e: Exception) {

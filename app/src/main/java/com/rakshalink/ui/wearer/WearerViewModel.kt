@@ -20,6 +20,7 @@ import com.rakshalink.domain.repository.SafeZoneRepository
 import com.rakshalink.domain.repository.SosRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import javax.inject.Inject
 import com.rakshalink.data.remote.dto.EmergencyAlertDto
@@ -40,7 +42,6 @@ import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
-import kotlinx.coroutines.Dispatchers
 import java.util.UUID
 
 data class GuardianModel(
@@ -136,10 +137,35 @@ class WearerViewModel @Inject constructor(
 
             _userInfo.value = Pair(rawName, realEmail)
 
-            if (activeUid.isNotEmpty()) {
-                val codeHash = activeUid.take(4).uppercase()
-                _userPairingCode.value = "RL-$codeHash-WK"
+            val permanentCode = when {
+                !dbProfile?.wearer_code.isNullOrBlank() -> dbProfile!!.wearer_code!!
+                else -> com.rakshalink.data.remote.dto.generatePermanentWearerCode(realEmail)
             }
+            _userPairingCode.value = permanentCode
+
+            if (activeUid.isNotEmpty()) {
+                monitorSingleDeviceSession(activeUid)
+            }
+        }
+    }
+
+    private fun monitorSingleDeviceSession(activeUid: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val localToken = try { userPreferencesManager.sessionTokenFlow.first() } catch (e: Exception) { "" }
+            if (localToken.isEmpty()) return@launch
+
+            try {
+                val dbProfile = supabaseProvider.db.from("users")
+                    .select(columns = Columns.ALL) { filter { eq("id", activeUid) } }
+                    .decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
+
+                val remoteToken = dbProfile?.session_device_token ?: ""
+                if (remoteToken.isNotEmpty() && remoteToken != localToken) {
+                    withContext(Dispatchers.Main) {
+                        authRepository.signOut()
+                    }
+                }
+            } catch (e: Exception) {}
         }
     }
 

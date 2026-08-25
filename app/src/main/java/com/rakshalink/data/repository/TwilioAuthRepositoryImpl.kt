@@ -54,15 +54,19 @@ class TwilioAuthRepositoryImpl @Inject constructor(
                 }
             }
 
-            val randomDigits = (1000..9999).random()
-            val wearerCode = "RL-$randomDigits-WK"
+            val permanentCode = when {
+                !existingProfile?.wearer_code.isNullOrBlank() -> existingProfile!!.wearer_code!!
+                else -> com.rakshalink.data.remote.dto.generatePermanentWearerCode(phone)
+            }
             val roleStr = role.name.lowercase()
+            val sessionToken = UUID.randomUUID().toString()
 
             // 1. Store session locally in DataStore
             userPreferencesManager.saveAuthSession(
                 userId = userId,
                 phone = phone,
-                role = roleStr
+                role = roleStr,
+                sessionToken = sessionToken
             )
 
             // 2. Insert or update user profile row in Supabase
@@ -72,7 +76,8 @@ class TwilioAuthRepositoryImpl @Inject constructor(
                     phone = phone,
                     full_name = if (role == UserRole.GUARDIAN) "Guardian User" else "Wearer User",
                     role = roleStr,
-                    wearer_code = wearerCode
+                    wearer_code = permanentCode,
+                    session_device_token = sessionToken
                 )
                 supabaseProvider.db.from("users").upsert(profile)
             } catch (e: Exception) {}

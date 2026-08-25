@@ -220,6 +220,8 @@ class GuardianViewModel @Inject constructor(
                         }.decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
                 } catch (e: Exception) { null }
 
+                val generatedCode = com.rakshalink.data.remote.dto.generatePermanentWearerCode(cleaned)
+
                 // 2. Fallback: Query all user profiles if targeted query missed
                 if (userMatch == null) {
                     try {
@@ -230,8 +232,10 @@ class GuardianViewModel @Inject constructor(
                         userMatch = allUsers.firstOrNull { prof ->
                             prof.wearer_code?.equals(cleanedUpper, ignoreCase = true) == true ||
                             prof.wearer_code?.equals(cleaned, ignoreCase = true) == true ||
+                            prof.wearer_code?.equals(generatedCode, ignoreCase = true) == true ||
                             prof.email?.equals(cleanedLower, ignoreCase = true) == true ||
                             prof.email?.equals(cleaned, ignoreCase = true) == true ||
+                            (prof.email != null && com.rakshalink.data.remote.dto.generatePermanentWearerCode(prof.email).equals(cleanedUpper, ignoreCase = true)) ||
                             prof.id.equals(cleaned, ignoreCase = true)
                         }
                     } catch (e: Exception) { null }

@@ -33,8 +33,21 @@ data class UserProfileDto(
     val phone: String? = null,
     val full_name: String = "",
     val role: String = "wearer",
-    val wearer_code: String? = null
+    val wearer_code: String? = null,
+    val session_device_token: String? = null
 )
+
+fun generatePermanentWearerCode(identifier: String): String {
+    val cleaned = identifier.trim().lowercase()
+    if (cleaned.isBlank()) return "RL-000000-WK"
+    return try {
+        val digest = java.security.MessageDigest.getInstance("MD5").digest(cleaned.toByteArray())
+        val hex = digest.joinToString("") { "%02X".format(it) }
+        "RL-${hex.take(6)}-WK"
+    } catch (e: Exception) {
+        "RL-${cleaned.take(6).uppercase()}-WK"
+    }
+}
 
 @Serializable
 data class SendInviteRequest(

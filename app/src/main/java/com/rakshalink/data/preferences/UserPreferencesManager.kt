@@ -35,6 +35,7 @@ class UserPreferencesManager @Inject constructor(
         val KEY_QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val KEY_QUIET_HOURS_START = stringPreferencesKey("quiet_hours_start")
         val KEY_QUIET_HOURS_END = stringPreferencesKey("quiet_hours_end")
+        val KEY_SESSION_DEVICE_TOKEN = stringPreferencesKey("session_device_token")
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
@@ -48,6 +49,10 @@ class UserPreferencesManager @Inject constructor(
 
     val userPhoneOrEmailFlow: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[KEY_USER_PHONE] ?: ""
+    }
+
+    val sessionTokenFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_SESSION_DEVICE_TOKEN] ?: ""
     }
 
     val pushEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -90,11 +95,14 @@ class UserPreferencesManager @Inject constructor(
         context.dataStore.edit { prefs -> prefs[KEY_USER_ROLE] = role }
     }
 
-    suspend fun saveAuthSession(userId: String, phone: String, role: String) {
+    suspend fun saveAuthSession(userId: String, phone: String, role: String, sessionToken: String = "") {
         context.dataStore.edit { prefs ->
             prefs[KEY_USER_ID] = userId
             prefs[KEY_USER_PHONE] = phone
             prefs[KEY_USER_ROLE] = role
+            if (sessionToken.isNotEmpty()) {
+                prefs[KEY_SESSION_DEVICE_TOKEN] = sessionToken
+            }
             prefs[KEY_IS_AUTHENTICATED] = true
         }
     }
@@ -103,6 +111,7 @@ class UserPreferencesManager @Inject constructor(
         context.dataStore.edit { prefs ->
             prefs[KEY_USER_ID] = ""
             prefs[KEY_USER_PHONE] = ""
+            prefs[KEY_SESSION_DEVICE_TOKEN] = ""
             prefs[KEY_IS_AUTHENTICATED] = false
         }
     }
