@@ -191,20 +191,31 @@ class GuardianViewModel @Inject constructor(
             }
 
             try {
-                // Find wearer profile matching code or email or ID
-                val profiles = try {
+                // Find wearer profile matching code or email or ID across users & profiles
+                val usersList = try {
                     supabaseProvider.db.from("users")
                         .select(columns = Columns.ALL)
                         .decodeList<com.rakshalink.data.remote.dto.UserProfileDto>()
                 } catch (e: Exception) { emptyList() }
 
-                val match = profiles.firstOrNull { prof ->
+                val profilesList = try {
+                    supabaseProvider.db.from("profiles")
+                        .select(columns = Columns.ALL)
+                        .decodeList<com.rakshalink.data.remote.dto.ProfileDto>()
+                } catch (e: Exception) { emptyList() }
+
+                val userMatch = usersList.firstOrNull { prof ->
                     prof.email.equals(cleaned, ignoreCase = true) ||
                     prof.wearer_code.equals(cleaned, ignoreCase = true) ||
                     prof.id.equals(cleaned, ignoreCase = true)
                 }
 
-                val targetWearerId = match?.id ?: cleaned
+                val profileMatch = profilesList.firstOrNull { prof ->
+                    prof.email.equals(cleaned, ignoreCase = true) ||
+                    prof.id.equals(cleaned, ignoreCase = true)
+                }
+
+                val targetWearerId = userMatch?.id ?: profileMatch?.id ?: cleaned
 
                 val linkDto = WearerGuardianLinkDto(
                     id = UUID.randomUUID().toString(),
@@ -217,11 +228,11 @@ class GuardianViewModel @Inject constructor(
 
                 try {
                     supabaseProvider.db.from("wearer_guardian_links").insert(linkDto)
-                } catch (e: Exception) {
-                    try {
-                        supabaseProvider.db.from("guardian_links").insert(linkDto)
-                    } catch (e2: Exception) {}
-                }
+                } catch (e: Exception) { e.printStackTrace() }
+
+                try {
+                    supabaseProvider.db.from("guardian_links").insert(linkDto)
+                } catch (e: Exception) { e.printStackTrace() }
 
                 withContext(Dispatchers.Main) {
                     onResult(true, "Wearer successfully linked! Live location tracking enabled.")

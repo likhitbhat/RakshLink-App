@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -31,16 +32,25 @@ import javax.inject.Singleton
 @Singleton
 class GuardianRepositoryImpl @Inject constructor(
     private val alertDao: AlertDao,
-    private val supabaseProvider: SupabaseClientProvider
+    private val supabaseProvider: SupabaseClientProvider,
+    private val userPreferencesManager: com.rakshalink.data.preferences.UserPreferencesManager
 ) : GuardianRepository {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    override fun getLinkedWearers(): Flow<List<WearerModel>> = channelFlow {
-        val currentUserId = supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: ""
+    private suspend fun resolveCurrentUserId(): String {
+        val supabaseUid = try { supabaseProvider.auth.currentSessionOrNull()?.user?.id ?: "" } catch (e: Exception) { "" }
+        if (supabaseUid.isNotEmpty()) return supabaseUid
+        val storedUid = try { userPreferencesManager.userIdFlow.first() } catch (e: Exception) { "" }
+        if (storedUid.isNotEmpty()) return storedUid
+        return ""
+    }
 
+    override fun getLinkedWearers(): Flow<List<WearerModel>> = channelFlow {
         suspend fun fetchWearers(): List<WearerModel> {
+            val currentUserId = resolveCurrentUserId()
             if (currentUserId.isEmpty()) return emptyList()
+
             return try {
                 val links = try {
                     supabaseProvider.db.from("wearer_guardian_links")
@@ -109,10 +119,18 @@ class GuardianRepositoryImpl @Inject constructor(
                     val parsedTimestamp = parseIsoTimestamp(latestLoc?.createdAt)
                     val isRecent = System.currentTimeMillis() - parsedTimestamp < 300000L
 
+                    val displayName = when {
+                        !profile?.fullName.isNullOrBlank() -> profile!!.fullName
+                        !profile?.email.isNullOrBlank() -> profile!!.email.substringBefore("@")
+                            .split(".", "_", "-")
+                            .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
+                        else -> "Wearer (${link.wearerId.take(6)})"
+                    }
+
                     wearers.add(
                         WearerModel(
                             id = link.wearerId,
-                            name = profile?.fullName?.ifBlank { null } ?: profile?.email?.substringBefore("@") ?: "Wearer",
+                            name = displayName,
                             email = profile?.email ?: "",
                             batteryLevel = device?.batteryLevel ?: 100,
                             isGpsActive = latestLoc != null || isRecent,
@@ -139,26 +157,18 @@ class GuardianRepositoryImpl @Inject constructor(
         // Initial fetch emit
         send(fetchWearers())
 
-        // Realtime Subscriptions for Location Updates
+        // Realtime Subscriptions for Links & Location Updates
         try {
             val channel = supabaseProvider.realtime.channel("guardian_locations_realtime")
-            val locationChanges1 = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-                table = "locations"
-            }
-            val locationChanges2 = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-                table = "live_locations"
-            }
+            val linkChanges1 = channel.postgresChangeFlow<PostgresAction>(schema = "public") { table = "wearer_guardian_links" }
+            val linkChanges2 = channel.postgresChangeFlow<PostgresAction>(schema = "public") { table = "guardian_links" }
+            val locationChanges1 = channel.postgresChangeFlow<PostgresAction>(schema = "public") { table = "locations" }
+            val locationChanges2 = channel.postgresChangeFlow<PostgresAction>(schema = "public") { table = "live_locations" }
 
-            scope.launch {
-                locationChanges1.collect {
-                    send(fetchWearers())
-                }
-            }
-            scope.launch {
-                locationChanges2.collect {
-                    send(fetchWearers())
-                }
-            }
+            scope.launch { linkChanges1.collect { send(fetchWearers()) } }
+            scope.launch { linkChanges2.collect { send(fetchWearers()) } }
+            scope.launch { locationChanges1.collect { send(fetchWearers()) } }
+            scope.launch { locationChanges2.collect { send(fetchWearers()) } }
             channel.subscribe()
         } catch (e: Exception) {
             e.printStackTrace()
