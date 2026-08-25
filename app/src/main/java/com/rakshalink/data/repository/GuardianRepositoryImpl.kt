@@ -17,6 +17,8 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -55,110 +57,119 @@ class GuardianRepositoryImpl @Inject constructor(
             return try {
                 val links = mutableListOf<GuardianLinkDto>()
 
-                // Fetch links matching guardian_id
-                try {
-                    val l1 = supabaseProvider.db.from("wearer_guardian_links")
-                        .select(columns = Columns.ALL) {
-                            filter {
-                                if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
-                                else eq("guardian_id", storedContact)
-                            }
-                        }.decodeList<GuardianLinkDto>()
-                    links.addAll(l1)
-                } catch (e: Exception) {}
-
-                try {
-                    val l2 = supabaseProvider.db.from("guardian_links")
-                        .select(columns = Columns.ALL) {
-                            filter {
-                                if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
-                                else eq("guardian_id", storedContact)
-                            }
-                        }.decodeList<GuardianLinkDto>()
-                    links.addAll(l2)
-                } catch (e: Exception) {}
-
-                // If links empty and storedContact is present, try fallback lookup
-                if (links.isEmpty() && storedContact.isNotEmpty() && currentUserId.isNotEmpty()) {
+                // Fetch links matching guardian_id in parallel
+                val l1Deferred = scope.async {
                     try {
-                        val l3 = supabaseProvider.db.from("wearer_guardian_links")
+                        supabaseProvider.db.from("wearer_guardian_links")
                             .select(columns = Columns.ALL) {
-                                filter { eq("guardian_id", storedContact) }
+                                filter {
+                                    or {
+                                        if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
+                                        if (storedContact.isNotEmpty()) eq("guardian_id", storedContact)
+                                    }
+                                }
                             }.decodeList<GuardianLinkDto>()
-                        links.addAll(l3)
-                    } catch (e: Exception) {}
+                    } catch (e: Exception) { emptyList() }
                 }
+
+                val l2Deferred = scope.async {
+                    try {
+                        supabaseProvider.db.from("guardian_links")
+                            .select(columns = Columns.ALL) {
+                                filter {
+                                    or {
+                                        if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
+                                        if (storedContact.isNotEmpty()) eq("guardian_id", storedContact)
+                                    }
+                                }
+                            }.decodeList<GuardianLinkDto>()
+                    } catch (e: Exception) { emptyList() }
+                }
+
+                links.addAll(l1Deferred.await())
+                links.addAll(l2Deferred.await())
 
                 val distinctLinks = links.distinctBy { it.wearerId }
                 if (distinctLinks.isEmpty()) return emptyList()
 
-                val wearers = mutableListOf<WearerModel>()
-                for (link in distinctLinks) {
-                    val userProf = try {
-                        supabaseProvider.db.from("users")
-                            .select(columns = Columns.ALL) {
-                                filter {
-                                    or {
-                                        eq("id", link.wearerId)
-                                        eq("wearer_code", link.wearerId)
-                                        eq("email", link.wearerId)
+                val wearersDeferred = distinctLinks.map { link ->
+                    scope.async {
+                        val userProfDeferred = async {
+                            try {
+                                supabaseProvider.db.from("users")
+                                    .select(columns = Columns.ALL) {
+                                        filter {
+                                            or {
+                                                eq("id", link.wearerId)
+                                                eq("wearer_code", link.wearerId)
+                                                eq("email", link.wearerId)
+                                            }
+                                        }
+                                        limit(1)
+                                    }.decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
+                            } catch (e: Exception) {
+                                try {
+                                    val p = supabaseProvider.db.from("profiles")
+                                        .select(columns = Columns.ALL) {
+                                            filter { eq("id", link.wearerId) }
+                                            limit(1)
+                                        }.decodeSingleOrNull<ProfileDto>()
+                                    p?.let {
+                                        com.rakshalink.data.remote.dto.UserProfileDto(
+                                            id = it.id,
+                                            email = it.email,
+                                            full_name = it.fullName
+                                        )
                                     }
-                                }
-                            }.decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
-                    } catch (e: Exception) {
-                        try {
-                            val p = supabaseProvider.db.from("profiles")
-                                .select(columns = Columns.ALL) {
-                                    filter { eq("id", link.wearerId) }
-                                }.decodeSingleOrNull<ProfileDto>()
-                            p?.let {
-                                com.rakshalink.data.remote.dto.UserProfileDto(
-                                    id = it.id,
-                                    email = it.email,
-                                    full_name = it.fullName
-                                )
+                                } catch (e2: Exception) { null }
                             }
-                        } catch (e2: Exception) { null }
-                    }
+                        }
 
-                    val latestLoc = try {
-                        supabaseProvider.db.from("locations")
-                            .select(columns = Columns.ALL) {
-                                filter { eq("user_id", link.wearerId) }
-                                order("created_at", order = io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-                                limit(1)
-                            }.decodeSingleOrNull<LiveLocationDto>()
-                    } catch (e: Exception) {
-                        try {
-                            supabaseProvider.db.from("live_locations")
-                                .select(columns = Columns.ALL) {
-                                    filter { eq("user_id", link.wearerId) }
-                                    order("created_at", order = io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-                                    limit(1)
-                                }.decodeSingleOrNull<LiveLocationDto>()
-                        } catch (e2: Exception) { null }
-                    }
+                        val latestLocDeferred = async {
+                            try {
+                                supabaseProvider.db.from("locations")
+                                    .select(columns = Columns.ALL) {
+                                        filter { eq("user_id", link.wearerId) }
+                                        order("created_at", order = io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                                        limit(1)
+                                    }.decodeSingleOrNull<LiveLocationDto>()
+                            } catch (e: Exception) {
+                                try {
+                                    supabaseProvider.db.from("live_locations")
+                                        .select(columns = Columns.ALL) {
+                                            filter { eq("user_id", link.wearerId) }
+                                            order("created_at", order = io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                                            limit(1)
+                                        }.decodeSingleOrNull<LiveLocationDto>()
+                                } catch (e2: Exception) { null }
+                            }
+                        }
 
-                    val device = try {
-                        supabaseProvider.db.from("devices")
-                            .select(columns = Columns.ALL) {
-                                filter { eq("user_id", link.wearerId) }
-                                limit(1)
-                            }.decodeSingleOrNull<DeviceDto>()
-                    } catch (e: Exception) { null }
+                        val deviceDeferred = async {
+                            try {
+                                supabaseProvider.db.from("devices")
+                                    .select(columns = Columns.ALL) {
+                                        filter { eq("user_id", link.wearerId) }
+                                        limit(1)
+                                    }.decodeSingleOrNull<DeviceDto>()
+                            } catch (e: Exception) { null }
+                        }
 
-                    val parsedTimestamp = parseIsoTimestamp(latestLoc?.createdAt)
-                    val isRecent = System.currentTimeMillis() - parsedTimestamp < 300000L
+                        val userProf = userProfDeferred.await()
+                        val latestLoc = latestLocDeferred.await()
+                        val device = deviceDeferred.await()
 
-                    val displayName = when {
-                        !userProf?.full_name.isNullOrBlank() -> userProf!!.full_name
-                        !userProf?.email.isNullOrBlank() -> userProf!!.email!!.substringBefore("@")
-                            .split(".", "_", "-")
-                            .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
-                        else -> "Wearer (${link.wearerId.take(6)})"
-                    }
+                        val parsedTimestamp = parseIsoTimestamp(latestLoc?.createdAt)
+                        val isRecent = System.currentTimeMillis() - parsedTimestamp < 300000L
 
-                    wearers.add(
+                        val displayName = when {
+                            !userProf?.full_name.isNullOrBlank() -> userProf!!.full_name
+                            !userProf?.email.isNullOrBlank() -> userProf!!.email!!.substringBefore("@")
+                                .split(".", "_", "-")
+                                .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
+                            else -> "Wearer (${link.wearerId.take(6)})"
+                        }
+
                         WearerModel(
                             id = link.wearerId,
                             name = displayName,
@@ -177,9 +188,10 @@ class GuardianRepositoryImpl @Inject constructor(
                                 )
                             }
                         )
-                    )
+                    }
                 }
-                wearers
+
+                wearersDeferred.awaitAll()
             } catch (e: Exception) {
                 e.printStackTrace()
                 emptyList()

@@ -200,29 +200,35 @@ class GuardianViewModel @Inject constructor(
             }
 
             try {
-                // Find wearer profile matching code or email or ID across users & profiles
-                val usersList = try {
+                // Targeted single-row profile lookup matching wearer_code, email, or id
+                val userMatch = try {
                     supabaseProvider.db.from("users")
-                        .select(columns = Columns.ALL)
-                        .decodeList<com.rakshalink.data.remote.dto.UserProfileDto>()
-                } catch (e: Exception) { emptyList() }
+                        .select(columns = Columns.ALL) {
+                            filter {
+                                or {
+                                    eq("wearer_code", cleaned)
+                                    eq("email", cleaned)
+                                    eq("id", cleaned)
+                                }
+                            }
+                            limit(1)
+                        }.decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
+                } catch (e: Exception) { null }
 
-                val profilesList = try {
-                    supabaseProvider.db.from("profiles")
-                        .select(columns = Columns.ALL)
-                        .decodeList<com.rakshalink.data.remote.dto.ProfileDto>()
-                } catch (e: Exception) { emptyList() }
-
-                val userMatch = usersList.firstOrNull { prof ->
-                    prof.email.equals(cleaned, ignoreCase = true) ||
-                    prof.wearer_code.equals(cleaned, ignoreCase = true) ||
-                    prof.id.equals(cleaned, ignoreCase = true)
-                }
-
-                val profileMatch = profilesList.firstOrNull { prof ->
-                    prof.email.equals(cleaned, ignoreCase = true) ||
-                    prof.id.equals(cleaned, ignoreCase = true)
-                }
+                val profileMatch = if (userMatch == null) {
+                    try {
+                        supabaseProvider.db.from("profiles")
+                            .select(columns = Columns.ALL) {
+                                filter {
+                                    or {
+                                        eq("email", cleaned)
+                                        eq("id", cleaned)
+                                    }
+                                }
+                                limit(1)
+                            }.decodeSingleOrNull<com.rakshalink.data.remote.dto.ProfileDto>()
+                    } catch (e: Exception) { null }
+                } else null
 
                 val targetWearerId = userMatch?.id ?: profileMatch?.id ?: cleaned
 
