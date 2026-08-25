@@ -49,44 +49,75 @@ class GuardianRepositoryImpl @Inject constructor(
     override fun getLinkedWearers(): Flow<List<WearerModel>> = channelFlow {
         suspend fun fetchWearers(): List<WearerModel> {
             val currentUserId = resolveCurrentUserId()
-            if (currentUserId.isEmpty()) return emptyList()
+            val storedContact = try { userPreferencesManager.userPhoneOrEmailFlow.first() } catch (e: Exception) { "" }
+            if (currentUserId.isEmpty() && storedContact.isEmpty()) return emptyList()
 
             return try {
-                val links = try {
-                    supabaseProvider.db.from("wearer_guardian_links")
+                val links = mutableListOf<GuardianLinkDto>()
+
+                // Fetch links matching guardian_id
+                try {
+                    val l1 = supabaseProvider.db.from("wearer_guardian_links")
                         .select(columns = Columns.ALL) {
                             filter {
-                                eq("guardian_id", currentUserId)
+                                if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
+                                else eq("guardian_id", storedContact)
                             }
                         }.decodeList<GuardianLinkDto>()
-                } catch (e: Exception) {
+                    links.addAll(l1)
+                } catch (e: Exception) {}
+
+                try {
+                    val l2 = supabaseProvider.db.from("guardian_links")
+                        .select(columns = Columns.ALL) {
+                            filter {
+                                if (currentUserId.isNotEmpty()) eq("guardian_id", currentUserId)
+                                else eq("guardian_id", storedContact)
+                            }
+                        }.decodeList<GuardianLinkDto>()
+                    links.addAll(l2)
+                } catch (e: Exception) {}
+
+                // If links empty and storedContact is present, try fallback lookup
+                if (links.isEmpty() && storedContact.isNotEmpty() && currentUserId.isNotEmpty()) {
                     try {
-                        supabaseProvider.db.from("guardian_links")
+                        val l3 = supabaseProvider.db.from("wearer_guardian_links")
                             .select(columns = Columns.ALL) {
-                                filter {
-                                    eq("guardian_id", currentUserId)
-                                }
+                                filter { eq("guardian_id", storedContact) }
                             }.decodeList<GuardianLinkDto>()
-                    } catch (e2: Exception) {
-                        emptyList()
-                    }
+                        links.addAll(l3)
+                    } catch (e: Exception) {}
                 }
 
-                if (links.isEmpty()) return emptyList()
+                val distinctLinks = links.distinctBy { it.wearerId }
+                if (distinctLinks.isEmpty()) return emptyList()
 
                 val wearers = mutableListOf<WearerModel>()
-                for (link in links) {
-                    val profile = try {
+                for (link in distinctLinks) {
+                    val userProf = try {
                         supabaseProvider.db.from("users")
                             .select(columns = Columns.ALL) {
-                                filter { eq("id", link.wearerId) }
-                            }.decodeSingleOrNull<ProfileDto>()
+                                filter {
+                                    or {
+                                        eq("id", link.wearerId)
+                                        eq("wearer_code", link.wearerId)
+                                        eq("email", link.wearerId)
+                                    }
+                                }
+                            }.decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
                     } catch (e: Exception) {
                         try {
-                            supabaseProvider.db.from("profiles")
+                            val p = supabaseProvider.db.from("profiles")
                                 .select(columns = Columns.ALL) {
                                     filter { eq("id", link.wearerId) }
                                 }.decodeSingleOrNull<ProfileDto>()
+                            p?.let {
+                                com.rakshalink.data.remote.dto.UserProfileDto(
+                                    id = it.id,
+                                    email = it.email,
+                                    full_name = it.fullName
+                                )
+                            }
                         } catch (e2: Exception) { null }
                     }
 
@@ -120,8 +151,8 @@ class GuardianRepositoryImpl @Inject constructor(
                     val isRecent = System.currentTimeMillis() - parsedTimestamp < 300000L
 
                     val displayName = when {
-                        !profile?.fullName.isNullOrBlank() -> profile!!.fullName
-                        !profile?.email.isNullOrBlank() -> profile!!.email.substringBefore("@")
+                        !userProf?.full_name.isNullOrBlank() -> userProf!!.full_name
+                        !userProf?.email.isNullOrBlank() -> userProf!!.email!!.substringBefore("@")
                             .split(".", "_", "-")
                             .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercase() } }
                         else -> "Wearer (${link.wearerId.take(6)})"
@@ -131,8 +162,8 @@ class GuardianRepositoryImpl @Inject constructor(
                         WearerModel(
                             id = link.wearerId,
                             name = displayName,
-                            email = profile?.email ?: "",
-                            batteryLevel = device?.batteryLevel ?: 100,
+                            email = userProf?.email ?: "",
+                            batteryLevel = device?.batteryLevel ?: 95,
                             isGpsActive = latestLoc != null || isRecent,
                             isPendantConnected = device?.isConnected ?: true,
                             lastLocation = latestLoc?.let {
@@ -150,6 +181,7 @@ class GuardianRepositoryImpl @Inject constructor(
                 }
                 wearers
             } catch (e: Exception) {
+                e.printStackTrace()
                 emptyList()
             }
         }
