@@ -200,13 +200,18 @@ class GuardianViewModel @Inject constructor(
             }
 
             try {
-                // Targeted single-row profile lookup matching wearer_code, email, or id
-                val userMatch = try {
+                val cleanedUpper = cleaned.uppercase()
+                val cleanedLower = cleaned.lowercase()
+
+                // 1. Query users table with case-insensitive / variations
+                var userMatch = try {
                     supabaseProvider.db.from("users")
                         .select(columns = Columns.ALL) {
                             filter {
                                 or {
+                                    eq("wearer_code", cleanedUpper)
                                     eq("wearer_code", cleaned)
+                                    eq("email", cleanedLower)
                                     eq("email", cleaned)
                                     eq("id", cleaned)
                                 }
@@ -215,13 +220,30 @@ class GuardianViewModel @Inject constructor(
                         }.decodeSingleOrNull<com.rakshalink.data.remote.dto.UserProfileDto>()
                 } catch (e: Exception) { null }
 
+                // 2. Fallback: Query all user profiles if targeted query missed
+                if (userMatch == null) {
+                    try {
+                        val allUsers = supabaseProvider.db.from("users")
+                            .select(columns = Columns.ALL)
+                            .decodeList<com.rakshalink.data.remote.dto.UserProfileDto>()
+
+                        userMatch = allUsers.firstOrNull { prof ->
+                            prof.wearer_code?.equals(cleanedUpper, ignoreCase = true) == true ||
+                            prof.wearer_code?.equals(cleaned, ignoreCase = true) == true ||
+                            prof.email?.equals(cleanedLower, ignoreCase = true) == true ||
+                            prof.email?.equals(cleaned, ignoreCase = true) == true ||
+                            prof.id.equals(cleaned, ignoreCase = true)
+                        }
+                    } catch (e: Exception) { null }
+                }
+
                 val profileMatch = if (userMatch == null) {
                     try {
                         supabaseProvider.db.from("profiles")
                             .select(columns = Columns.ALL) {
                                 filter {
                                     or {
-                                        eq("email", cleaned)
+                                        eq("email", cleanedLower)
                                         eq("id", cleaned)
                                     }
                                 }
@@ -230,7 +252,14 @@ class GuardianViewModel @Inject constructor(
                     } catch (e: Exception) { null }
                 } else null
 
-                val targetWearerId = userMatch?.id ?: profileMatch?.id ?: cleaned
+                val targetWearerId = userMatch?.id ?: profileMatch?.id
+
+                if (targetWearerId.isNullOrEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        onResult(false, "No wearer account found for '$cleaned'. Please check the Wearer Code in the Wearer app and try again.")
+                    }
+                    return@launch
+                }
 
                 val linkDto = WearerGuardianLinkDto(
                     id = UUID.randomUUID().toString(),

@@ -55,14 +55,15 @@ class LocationRepositoryImpl @Inject constructor(
         try {
             if (isShareLocationEnabled && resolvedUserId.isNotEmpty()) {
                 val dto = LiveLocationDto(
-                    id = id,
+                    id = UUID.randomUUID().toString(),
                     userId = resolvedUserId,
                     latitude = location.latitude,
                     longitude = location.longitude,
-                    accuracy = location.accuracy
+                    accuracy = location.accuracy,
+                    createdAt = null
                 )
-                try { supabaseProvider.db.from("locations").insert(dto) } catch (e: Exception) {}
-                try { supabaseProvider.db.from("live_locations").insert(dto) } catch (e: Exception) {}
+                try { supabaseProvider.db.from("locations").insert(dto) } catch (e: Exception) { e.printStackTrace() }
+                try { supabaseProvider.db.from("live_locations").insert(dto) } catch (e: Exception) { e.printStackTrace() }
                 isSynced = true
             }
         } catch (e: Exception) {

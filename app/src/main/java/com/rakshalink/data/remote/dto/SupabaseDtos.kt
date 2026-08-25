@@ -33,7 +33,7 @@ data class LiveLocationDto(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val accuracy: Float = 0f,
-    @SerialName("created_at") val createdAt: String = ""
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable
